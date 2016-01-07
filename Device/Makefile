@@ -3,12 +3,13 @@
 
 GCC_BIN = 
 PROJECT = mbed_blinky
-OBJECTS = ./main.o 
+OBJECTS = ./main.o ./modules/GSM.o
 SYS_OBJECTS = ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/board.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/cmsis_nvic.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/retarget.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/startup_LPC17xx.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/system_LPC17xx.o 
-INCLUDE_PATHS = -I. -I./mbed -I./mbed/TARGET_LPC1768 -I./mbed/TARGET_LPC1768/TARGET_NXP -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X/TARGET_MBED_LPC1768 -I./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM 
+INCLUDE_PATHS = -I. -I./modules -I./mbed -I./mbed/TARGET_LPC1768 -I./mbed/TARGET_LPC1768/TARGET_NXP -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X/TARGET_MBED_LPC1768 -I./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM 
 LIBRARY_PATHS = -L./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM 
 LIBRARIES = -lmbed 
 LINKER_SCRIPT = ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/LPC1768.ld
+ODEL = $(OBJECTS)
 
 ############################################################################### 
 AS      = $(GCC_BIN)arm-none-eabi-as
@@ -86,6 +87,9 @@ size: $(PROJECT).elf
 DEPS = $(OBJECTS:.o=.d) $(SYS_OBJECTS:.o=.d)
 -include $(DEPS)
 
-all: 
-	@echo Copying File to Board
-	copy $(PROJECT).bin F:\
+all: 	
+	@echo Moving bin to bin directory and copying to board
+	move "$(PROJECT).bin" "bin\main.bin"
+	copy "bin\main.bin" "F:\"
+	@echo Deleting files
+	del $(PROJECT).elf $(PROJECT).hex $(PROJECT).map $(PROJECT).lst *.o *.d "modules\*.d" "modules\*.o"

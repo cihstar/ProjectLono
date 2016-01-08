@@ -1,3 +1,14 @@
+/***************************************************
+ Project Lono - 3rd Year Project
+ Smart, Autonomous, Connected Rain Gauge System
+ ---------------------------------------------------
+ Chris Holbrow
+ cih1g13@soton.ac.uk
+ ---------------------------------------------------
+ Main File
+ 
+ ***************************************************/
+
 /***  Standard Includes   ***/
 
 /***     mbed Includes    ***/
@@ -21,6 +32,6 @@ int main() {
         myled = 1;
         wait(0.2);
         myled = 0;
-        wait(0.6);
+        wait(0.7);
     }
 }

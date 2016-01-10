@@ -1,19 +1,102 @@
-#include "PCSerial.h"
+#include "modules.h"
 #include "util.h"
+#include "PCSerial.h"
 
-PCSerial::PCSerial(PinName tx, PinName rx, uint8_t size) : ser(tx,rx), echo(true){
+void PCSerial::rxTask()
+{
+    rxThread.signal_wait(1);
+    util::printInfo("Helo there");
+    PCMessage* m;
+    string mType;
+    string mIns[3];
+    while(true)
+    {        
+        m = modules::pc->getNextMessage();
+        mType = m->getMessageType();
+        mIns[0] = m->getInstruction(0);
+        mIns[1] = m->getInstruction(1);
+        mIns[2] = m->getInstruction(2);
+        
+        if (mType == "setRainMode")
+        {
+            util::printInfo("Setting rain mode to " + mIns[0]);
+        }
+        else if (mType == "flash")
+        {
+            int i = util::ToInt(mIns[0]);
+            if (i < 4)
+            {
+                util::printInfo("Toggling flasher "+mIns[0]);
+                modules::flasher[i]->toggle();
+            }
+            else
+            {
+                util::printError("No flasher of that number");  
+            }
+        }
+        else if (mType == "flashRate")
+        {
+            int i = util::ToInt(mIns[0]);
+            int r = util::ToInt(mIns[1]);
+            if (i < 4)
+            {
+                if (r >= 0)
+                {
+                    util::printInfo("Setting rate of flasher "+mIns[0]+" to "+mIns[1]+" ms");
+                    modules::flasher[i]->setRate(r);
+                }
+                else
+                {
+                    util::printError("Specify value for flash rate");
+                }
+            }
+            else
+            {
+                util::printError("No flasher of that number");
+            }
+        }
+        else if (mType == "debug")
+        {
+            if (mIns[0] != "0")
+            {
+                util::printDebug("Enable Debug Mode");
+                modules::pc->setDebug(true);
+            }
+            else
+            {
+                util::printInfo("Disable Debug Mode");
+                modules::pc->setDebug(false);
+            }
+        }
+        else
+        {
+            util::printError("Unknown Command '"+mType+"'");
+        }
+    }
+}
+
+PCSerial::PCSerial(PinName tx, PinName rx, uint8_t size) : ser(tx,rx), echo(true), 
+rxThread(&PCSerial::threadStarter, this, osPriorityNormal,1024), newm()
+{
     ser.attach(this,&PCSerial::rxByte);
     count = 0;
+    insCount = 0;
     typeDone = false;
     debug = true;
     bufferSize = size;
+    rxThread.signal_set(1);     
+}
+
+void PCSerial::threadStarter(void const *p) {
+  PCSerial *instance = (PCSerial*)p;
+  instance->rxTask();
 }
 
 PCSerial::~PCSerial(){}
 
 void PCSerial::send(PCMessage m)
 {
-    ser.printf("%s %s", m.getMessageType(), m.getInstruction());
+    ser.printf("%s %s", m.getMessageType(), m.getInstruction(0));
 }
 
 void PCSerial::addToBuffer(char* buff, char c)
@@ -45,13 +128,18 @@ void PCSerial::rxByte()
             addToBuffer(typeBuffer, '\0');
             count = 0;
             typeDone = true;
+            newm.setMessageType(util::ToString(typeBuffer));
         }
         else if ( c == '\r' )
         {
             ser.printf("\n");
             addToBuffer(typeBuffer, '\0');
             count = 0;
-            PCMessage newm(ToString(typeBuffer), "");
+            insCount = 0;
+            newm.setMessageType(util::ToString(typeBuffer));
+            newm.setInstruction(0,"");
+            newm.setInstruction(1,"");
+            newm.setInstruction(2,"");
             messageQueue.put(&newm);  
         }
         else if ( c >= 33 && c <= 126)
@@ -64,11 +152,24 @@ void PCSerial::rxByte()
         if ( c == '\r')
         {
             ser.printf("\n");
-            addToBuffer(instructionBuffer, '\0');   
+            addToBuffer(instructionBuffer, '\0');
+            newm.setInstruction(insCount, util::ToString(instructionBuffer));
+            insCount++;
+            for (int i = insCount; i < 3; i++)
+            {
+                newm.setInstruction(i,"");
+            }
             count = 0;
+            insCount = 0;
             typeDone = false;
-            PCMessage newm(ToString(typeBuffer), ToString(instructionBuffer));
             messageQueue.put(&newm);
+        }
+        else if ( c == ' ' )
+        {
+            addToBuffer(instructionBuffer, '\0');
+            count = 0;
+            newm.setInstruction(insCount,util::ToString(instructionBuffer));
+            insCount++;
         }
         else if ( c >= 33 && c <= 126)
         {
@@ -107,16 +208,20 @@ void PCSerial::print(string s)
     ser.printf("%s\r\n",s.c_str());
 }
 
-PCMessage::PCMessage(string t, string i)
+PCMessage::PCMessage(string t, string i, string i1, string i2)
 {
-    instruction = i;
+    instruction[0] = i;
+    instruction[1] = i1;
+    instruction[2] = i2;
     type = t;
 }
 
 PCMessage::PCMessage()
 {
     type = "";
-    instruction = "";
+    instruction[0] = "";
+    instruction[1] = "";
+    instruction[2] = "";
 }
 PCMessage::~PCMessage(){}
 
@@ -130,30 +235,12 @@ string PCMessage::getMessageType()
     return type;
 }
 
-void PCMessage::setInstruction(string i)
+void PCMessage::setInstruction(int x, string i)
 {
-    instruction = i;
+    instruction[x] = i;
 }
 
-string PCMessage::getInstruction()
+string PCMessage::getInstruction(int x)
 {
-    return instruction;
-}
-
-void printInfo(string s)
-{   
-    pc.print("Info: "+s);
-}
-
-void printDebug(string s)
-{
-    #ifdef DEBUG
-        if (pc.getDebug())
-            pc.print("Debug: "+s);
-    #endif
-}
-
-void printError(string s)
-{
-    pc.print("Error: "+s);
+    return instruction[x];
 }

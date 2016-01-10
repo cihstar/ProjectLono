@@ -1,11 +1,10 @@
 #include "mbed.h"
-#include "PCSerial.h"
 #include "FourWireSerial.h"
 #include "rtos.h"
 #include <string>
 
 FourWireSerial::FourWireSerial(PinName rx, PinName cts, PinName tx, PinName rts) :
-RTS(rts), CTS(cts), sBuffer(1), serial(tx,rx), bufferLen(0), bufferFront(0)
+RTS(rts), CTS(cts), serial(tx,rx)
 {
     serial.attach(this, &FourWireSerial::recieveByte);
 }
@@ -17,22 +16,7 @@ FourWireSerial::~FourWireSerial()
 void FourWireSerial::recieveByte()
 {
     char c = serial.getc();
-    addByteToBuffer(c);
-}
-
-void FourWireSerial::addByteToBuffer(char byte)
-{
-    sBuffer.wait();   
-    if (bufferLen < (uint16_t) BUFFER_LENGTH)
-    {
-        buffer[(bufferFront + bufferLen) % BUFFER_LENGTH] = byte;
-        bufferLen++;
-    }
-    else
-    {
-        RTS = 0; //tell device to stop sending as buffer full
-    }
-    sBuffer.release();   
+    charQueue.put(&c);
 }
 
 void FourWireSerial::setBaud(int baud)
@@ -40,55 +24,10 @@ void FourWireSerial::setBaud(int baud)
     serial.baud(baud);
 }
 
-char FourWireSerial::getByteFromBuffer()
-{
-    sBuffer.wait();
-    if (bufferLen > 0)
-    {
-        char byte = buffer[bufferFront];
-        bufferFront++;
-        bufferLen--;
-        bufferFront %= BUFFER_LENGTH;
-        RTS = 1; //space now so make sure RTS is high to recieve more
-        sBuffer.release();
-        return byte;
-    }
-    else
-    {
-        sBuffer.release();
-        return 0;
-    }
-}
-
 void FourWireSerial::sendByte(char byte)
 {
     //while (CTS == 0); //wait for CTS is high to send
     serial.putc(byte);
-}
-
-void FourWireSerial::emptyBuffer()
-{
-    for (int i = 0; i < BUFFER_LENGTH; i++)
-    {
-        buffer[i] = '\0';
-        bufferLen = 0;
-        bufferFront = 0;
-    }
-}
-
-string FourWireSerial::getBuffer()
-{
-    if (bufferLen > 0)
-    {
-        sBuffer.wait();
-        buffer[(bufferFront + bufferLen) % BUFFER_LENGTH] = '\0';
-        string str(buffer);
-        emptyBuffer();
-        sBuffer.release();
-        RTS = 1;
-        return str;
-   }
-   return "";
 }
 
 void FourWireSerial::sendData(string data)
@@ -99,8 +38,12 @@ void FourWireSerial::sendData(string data)
     }
 }
 
-uint16_t FourWireSerial::getBufferLength()
+char* FourWireSerial::getNextChar()
 {
-    return bufferLen;
+    osEvent e = charQueue.get();
+    if (e.status == osEventMessage)
+    {
+        char *message = (char*)e.value.p;
+        return message;
+    }
 }
-

@@ -4,12 +4,22 @@
 #include <sstream>
 #include <string>
 
-template <typename T>
-string ToString(T val)
+namespace util
 {
-    stringstream stream;
-    stream << val;
-    return stream.str();
+
+    void printInfo(std::string s);
+    void printDebug(std::string s);
+    void printError(std::string s);
+    void printBreak();
+    int ToInt(std::string s);
+
+    template <typename T>
+    std::string ToString(T val)
+    {
+        std::stringstream stream;
+        stream << val;
+        return stream.str();
+    }
 }
 
 #endif

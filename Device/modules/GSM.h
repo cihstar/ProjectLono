@@ -5,6 +5,7 @@ class GSM {
   public:
     GSM();
     int dostuff();
+  private:
 };
 
 #endif

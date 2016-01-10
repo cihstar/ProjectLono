@@ -7,19 +7,19 @@
 
 class PCMessage{
   public:
-    PCMessage(string t, string i);
+    PCMessage(string t, string i, string i1="", string i2="");
     PCMessage();
     ~PCMessage();
    
     void setMessageType(string t);
     string getMessageType();
     
-    void setInstruction(string t);
-    string getInstruction();
+    void setInstruction(int x, string t);
+    string getInstruction(int x);
     
     private:      
         string type;
-        string instruction;
+        string instruction[3];
 };
 
 class PCSerial{
@@ -41,15 +41,14 @@ class PCSerial{
         char typeBuffer[16];
         char instructionBuffer[16];
         uint8_t count;
+        uint8_t insCount;
         bool typeDone;
         bool debug;  
-        uint8_t bufferSize;      
+        uint8_t bufferSize;  
+        Thread rxThread;     
+        static void threadStarter(void const *p);
+        void rxTask();  
+        PCMessage newm;    
 };
-
-void printInfo(string s);
-void printDebug(string s);
-void printError(string s);
-
-extern PCSerial pc;
 
 #endif

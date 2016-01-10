@@ -17,86 +17,30 @@
 #include "rtos.h"
 
 /***   Project Includes   ***/
-#include "PCSerial.h"
-#include "GSM.h"
 #include "pindef.h"
-#include "FourWireSerial.h"
 #include "util.h"
+#include "modules.h"
 
-/*** Declarations ***/
-DigitalOut myled(BOARD_LED_1);
-DigitalOut myled1(BOARD_LED_2);
-DigitalOut myled2(BOARD_LED_3);
-DigitalOut myled3(BOARD_LED_4);
+/*** Module Declarations ***/
 
-PCSerial pc(USB_SERIAL_TX, USB_SERIAL_RX, 16);
-GSM gsm;
-
-/* Thread Prototpyes */
-void flashLed(void const *args);
-void PCMessageRx(void const *args);
-
-int flash;
-/* Thread Declarations */
-void flashLed(void const *args)
-{
-    myled2 = 1;
-    while(true){
-        Thread::wait(flash);
-        myled2 = !myled2;
-        //printDebug("Flash Thread");
-    }
-}
-
-void PCMessageRx(void const *args)
-{
-    PCMessage* m;
-    while(true)
-    {        
-        m = pc.getNextMessage();
-        string mType = m->getMessageType();
-        string ins = m->getInstruction();
-        
-        if (mType == "setRainMode")
-        {
-            printInfo("Setting rain mode to " + ins);
-        }
-        else if (mType == "setFlash")
-        {
-            printInfo("Set flash rate to "+ins+" ms");
-            flash = atoi(ins.c_str());
-        }
-        else if (mType == "debug")
-        {
-            if (ins != "0")
-            {
-                printDebug("Enable Debug Mode");
-                pc.setDebug(true);
-            }
-            else
-            {
-                printInfo("Disable Debug Mode");
-                pc.setDebug(false);
-            }
-        }
-        else
-        {
-            printError("Unknown Command '"+mType+"'");
-        }
-    }
-}
+//Board LEDS
+Flasher* modules::flasher[4];
+PCSerial* modules::pc;
+//GSM gsm;
 
 /*** Main Function ***/
-int main() {    
-    flash = 500;     
-    /* Thread to flash LED on board to show responsiveness */
-    Thread flashThread(flashLed);
- 
-    /* Thread to Recieve message from PC serial and act on them */
-    Thread PCRxMessageThread(PCMessageRx);
+int main() { 
+    modules::flasher[0] = new Flasher(BOARD_LED_1);
+    modules::flasher[1] = new Flasher(BOARD_LED_2);
+    modules::flasher[2] = new Flasher(BOARD_LED_3);
+    modules::flasher[3] = new Flasher(BOARD_LED_4);    
+    modules::pc = new PCSerial(USB_SERIAL_TX, USB_SERIAL_RX, 16);
+    /* Print Startup Info */
+    util::printBreak();
+    util::printInfo("Project Lono Started Up!");
+    util::printDebug("Debug Mode Enabled");    
+    util::printBreak();
+
     
-    printInfo("Project Lono Started Up!");
-    printDebug("Debug Mode Enabled");    
-    myled = 1; 
     while(1){}   
 }

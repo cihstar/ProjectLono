@@ -1,9 +1,9 @@
 #include "GSM.h"
-#include "pcPrint.h"
+#include "PCSerial.h"
 
 int GSM::dostuff()
 {   
-    pc.printf("dhello from GSM filje\n");
+    printInfo("Hello from the other side");
     return 5;
 }
 

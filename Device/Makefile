@@ -1,6 +1,6 @@
 GCC_BIN = 
 PROJECT = lono
-OBJECTS = ./modules/Flasher.o ./modules/util.o ./modules/FIFO.o ./modules/PCSerial.o ./main.o ./modules/GSM.o ./modules/FourWireSerial.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/HAL_CM3.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/SVC_Table.o ./rtx/TARGET_CORTEX_M/HAL_CM.o ./rtx/TARGET_CORTEX_M/RTX_Conf_CM.o ./rtx/TARGET_CORTEX_M/rt_CMSIS.o ./rtx/TARGET_CORTEX_M/rt_Event.o ./rtx/TARGET_CORTEX_M/rt_List.o ./rtx/TARGET_CORTEX_M/rt_Mailbox.o ./rtx/TARGET_CORTEX_M/rt_MemBox.o ./rtx/TARGET_CORTEX_M/rt_Mutex.o ./rtx/TARGET_CORTEX_M/rt_Robin.o ./rtx/TARGET_CORTEX_M/rt_Semaphore.o ./rtx/TARGET_CORTEX_M/rt_System.o ./rtx/TARGET_CORTEX_M/rt_Task.o ./rtx/TARGET_CORTEX_M/rt_Time.o ./rtos/Mutex.o ./rtos/RtosTimer.o ./rtos/Semaphore.o ./rtos/Thread.o
+OBJECTS = ./modules/Flasher.o ./modules/util.o ./modules/PCSerial.o ./main.o ./modules/GSM.o ./modules/FourWireSerial.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/HAL_CM3.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/SVC_Table.o ./rtx/TARGET_CORTEX_M/HAL_CM.o ./rtx/TARGET_CORTEX_M/RTX_Conf_CM.o ./rtx/TARGET_CORTEX_M/rt_CMSIS.o ./rtx/TARGET_CORTEX_M/rt_Event.o ./rtx/TARGET_CORTEX_M/rt_List.o ./rtx/TARGET_CORTEX_M/rt_Mailbox.o ./rtx/TARGET_CORTEX_M/rt_MemBox.o ./rtx/TARGET_CORTEX_M/rt_Mutex.o ./rtx/TARGET_CORTEX_M/rt_Robin.o ./rtx/TARGET_CORTEX_M/rt_Semaphore.o ./rtx/TARGET_CORTEX_M/rt_System.o ./rtx/TARGET_CORTEX_M/rt_Task.o ./rtx/TARGET_CORTEX_M/rt_Time.o ./rtos/Mutex.o ./rtos/RtosTimer.o ./rtos/Semaphore.o ./rtos/Thread.o
 SYS_OBJECTS = ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/board.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/cmsis_nvic.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/retarget.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/startup_LPC17xx.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/system_LPC17xx.o 
 INCLUDE_PATHS = -I. -I./modules -I./rtos -I./rtx/TARGET_CORTEX_M -I./rtx/TARGET_CORTEX_M/TARGET_M3 -I./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC -I./mbed -I./mbed/TARGET_LPC1768 -I./mbed/TARGET_LPC1768/TARGET_NXP -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X/TARGET_MBED_LPC1768 -I./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM 
 LIBRARY_PATHS = -L./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM 
@@ -56,15 +56,8 @@ clean:
 
 
 
-
 $(PROJECT).elf: $(OBJECTS) $(SYS_OBJECTS)
 	$(LD) $(LD_FLAGS) -T$(LINKER_SCRIPT) $(LIBRARY_PATHS) -o $@ $^ $(LIBRARIES) $(LD_SYS_LIBS) $(LIBRARIES) $(LD_SYS_LIBS)
-
-	@echo ""
-	@echo "*****"
-	@echo "***** You must modify vector checksum value in *.bin and *.hex files."
-	@echo "*****"
-	@echo ""
 
 
 $(PROJECT).bin: $(PROJECT).elf

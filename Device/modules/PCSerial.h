@@ -36,10 +36,9 @@ class PCSerial{
     private:
         Serial ser;
         void rxByte();
-        void addToBuffer(char* buff, char c);
+        void addToBuffer(char c);
         bool echo;
-        char typeBuffer[16];
-        char instructionBuffer[16];
+        char buffer[16];
         uint8_t count;
         uint8_t insCount;
         bool typeDone;

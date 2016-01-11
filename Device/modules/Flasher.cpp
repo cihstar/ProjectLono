@@ -1,7 +1,7 @@
 #include "Flasher.h"
 
 Flasher::Flasher(DigitalOut led) : 
-x(500), led(led), active(true), flashThread(&Flasher::threadStarter,this,osPriorityNormal, 1024)
+x(500), led(led), active(false), flashThread(&Flasher::threadStarter,this,osPriorityNormal, 1024)
 {
     flashThread.signal_set(1);
 }
@@ -36,10 +36,12 @@ void Flasher::setRate(int r)
 
 void Flasher::setActive(bool a)
 {
+    led = active;
     active = a;
 }
 
 void Flasher::toggle()
 {
+    led = !active;
     active = !active;
 }

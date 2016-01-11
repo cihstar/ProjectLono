@@ -3,6 +3,7 @@
 
 #include <sstream>
 #include <string>
+#include "mbed.h"
 
 namespace util
 {
@@ -20,6 +21,11 @@ namespace util
         stream << val;
         return stream.str();
     }
+   
+    bool isNumber(char c);
+    static bool timeSet = false;
+    bool setTime(string date, string stime);
+    string getTimeStamp();
 }
 
 #endif

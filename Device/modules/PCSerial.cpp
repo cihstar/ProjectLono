@@ -4,8 +4,7 @@
 
 void PCSerial::rxTask()
 {
-    rxThread.signal_wait(1);
-    util::printInfo("Helo there");
+    rxThread.signal_wait(1);    
     PCMessage* m;
     string mType;
     string mIns[3];
@@ -16,8 +15,11 @@ void PCSerial::rxTask()
         mIns[0] = m->getInstruction(0);
         mIns[1] = m->getInstruction(1);
         mIns[2] = m->getInstruction(2);
-        
-        if (mType == "setRainMode")
+        if (mType == "help")
+        {
+            util::printInfo("todo: Write Help.");
+        }
+        else if (mType == "setRainMode")
         {
             util::printInfo("Setting rain mode to " + mIns[0]);
         }
@@ -68,6 +70,22 @@ void PCSerial::rxTask()
                 modules::pc->setDebug(false);
             }
         }
+        else if (mType == "getTime")
+        {
+            util::printInfo("System Time -> "+util::getTimeStamp());
+        }
+        else if (mType == "setTime")
+        {
+           bool r = util::setTime(mIns[0], mIns[1]);
+           if (r)
+           {               
+               util::printInfo("Time Set Successfully. Current System Time: "+util::getTimeStamp());
+           }
+           else
+           {
+               util::printError("Incorrect Time/Date input. Use mm/dd/yyyy hh:mm:ss");
+           }
+        }
         else
         {
             util::printError("Unknown Command '"+mType+"'");
@@ -99,12 +117,12 @@ void PCSerial::send(PCMessage m)
     ser.printf("%s %s", m.getMessageType(), m.getInstruction(0));
 }
 
-void PCSerial::addToBuffer(char* buff, char c)
+void PCSerial::addToBuffer(char c)
 {
     if (count >= bufferSize)
-        buff[15] = c;
+        buffer[bufferSize-1] = c;
     else
-        buff[count] = c;
+        buffer[count] = c;
     count++;
 }
 
@@ -125,18 +143,18 @@ void PCSerial::rxByte()
     {
         if ( c == ' ')
         {
-            addToBuffer(typeBuffer, '\0');
+            addToBuffer('\0');
             count = 0;
             typeDone = true;
-            newm.setMessageType(util::ToString(typeBuffer));
+            newm.setMessageType(util::ToString(buffer));
         }
         else if ( c == '\r' )
         {
             ser.printf("\n");
-            addToBuffer(typeBuffer, '\0');
+            addToBuffer('\0');
             count = 0;
             insCount = 0;
-            newm.setMessageType(util::ToString(typeBuffer));
+            newm.setMessageType(util::ToString(buffer));
             newm.setInstruction(0,"");
             newm.setInstruction(1,"");
             newm.setInstruction(2,"");
@@ -144,7 +162,7 @@ void PCSerial::rxByte()
         }
         else if ( c >= 33 && c <= 126)
         {
-            addToBuffer(typeBuffer, c);
+            addToBuffer(c);
         }
     }
     else
@@ -152,8 +170,8 @@ void PCSerial::rxByte()
         if ( c == '\r')
         {
             ser.printf("\n");
-            addToBuffer(instructionBuffer, '\0');
-            newm.setInstruction(insCount, util::ToString(instructionBuffer));
+            addToBuffer('\0');
+            newm.setInstruction(insCount, util::ToString(buffer));
             insCount++;
             for (int i = insCount; i < 3; i++)
             {
@@ -166,14 +184,14 @@ void PCSerial::rxByte()
         }
         else if ( c == ' ' )
         {
-            addToBuffer(instructionBuffer, '\0');
+            addToBuffer('\0');
             count = 0;
-            newm.setInstruction(insCount,util::ToString(instructionBuffer));
+            newm.setInstruction(insCount,util::ToString(buffer));
             insCount++;
         }
         else if ( c >= 33 && c <= 126)
         {
-            addToBuffer(instructionBuffer, c); 
+            addToBuffer(c); 
         }
     }
 }
@@ -205,7 +223,8 @@ void PCSerial::setEcho(bool e)
 
 void PCSerial::print(string s)
 {
-    ser.printf("%s\r\n",s.c_str());
+    //write to log.txt on sd card
+    ser.printf("%s\r\n",s.c_str());    
 }
 
 PCMessage::PCMessage(string t, string i, string i1, string i2)

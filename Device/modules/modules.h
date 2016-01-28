@@ -12,7 +12,7 @@
 namespace modules
 {
     extern PCSerial* pc;
-    extern GSM gsm;
+    extern GSM* gsm;
     extern Flasher* flasher[4];    
 }
 #endif

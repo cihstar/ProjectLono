@@ -1,5 +1,6 @@
 /***  Standard Includes   ***/
 #include <string>
+#include <sstream>
 
 /***     mbed Includes    ***/
 #include "mbed.h"
@@ -10,13 +11,15 @@
 #include "util.h"
 #include "modules.h"
 
+#include "FourWireSerial.h"
+
 //Module Declarations
 Flasher* modules::flasher[4];
 PCSerial* modules::pc;
-//GSM gsm;
+GSM* modules::gsm;
 
 /*** Main Function - Initialise Everything! ***/
-int main() { 
+int main() {
     /* Initialise PC Serial Link */
     modules::pc = new PCSerial(USB_SERIAL_TX, USB_SERIAL_RX, 16);
     
@@ -24,6 +27,11 @@ int main() {
     util::printBreak();
     util::printInfo("Welcome to Project Lono - Smart Rain Gauge");
     util::printInfo("PC Serial Link initialised");
+    
+    /* Init GSM Module */
+    modules::gsm = new GSM(GSM_TX, GSM_RTS, GSM_RX, GSM_CTS);
+    ///probably will later be done in wireless module?
+    util::printInfo("GSM Module initialised");
     
     /* Init SD Card */
     

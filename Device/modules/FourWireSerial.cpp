@@ -4,7 +4,7 @@
 #include <string>
 
 FourWireSerial::FourWireSerial(PinName rx, PinName cts, PinName tx, PinName rts) :
-RTS(rts), CTS(cts), serial(tx,rx)
+RTS(rts), CTS(cts), serial(tx,rx), newm()
 {
     serial.attach(this, &FourWireSerial::recieveByte);
 }
@@ -16,7 +16,44 @@ FourWireSerial::~FourWireSerial()
 void FourWireSerial::recieveByte()
 {
     char c = serial.getc();
-    charQueue.put(&c);
+    if (c == '\n' && lastC == '\r')
+    {
+        //either start or end of message
+        if (!messageStarted)
+        {
+            //Start of message
+            messageStarted = true;
+            len = 0;
+        }
+        else
+        {
+            //end of message
+            messageStarted = false;
+            charBuffer[len] = '\0';
+            newm.setMessage(charBuffer);
+            messageQueue.put(&newm);
+        }
+    }
+    else
+    {        
+        if (messageStarted)
+        {
+            //middle of message, add to buffer
+            if (len >= FWS_BUFFER_LENGTH-1)
+            {
+                RTS = 0;
+            }
+            else
+            {
+                charBuffer[len] = c;
+                len++;
+                RTS = 1;
+            }
+        }
+    }
+    
+    // save this char
+    lastC = c;
 }
 
 void FourWireSerial::setBaud(int baud)
@@ -27,7 +64,7 @@ void FourWireSerial::setBaud(int baud)
 void FourWireSerial::sendByte(char byte)
 {
     //while (CTS == 0); //wait for CTS is high to send
-    serial.putc(byte);
+    serial.putc((char) byte);
 }
 
 void FourWireSerial::sendData(string data)
@@ -38,12 +75,38 @@ void FourWireSerial::sendData(string data)
     }
 }
 
-char* FourWireSerial::getNextChar()
+GSMMessage* FourWireSerial::getNextMessage()
 {
-    osEvent e = charQueue.get();
+    osEvent e = messageQueue.get();
     if (e.status == osEventMessage)
     {
-        char *message = (char*)e.value.p;
-        return message;
+        GSMMessage* m = (GSMMessage*) e.value.p;
+        return m;
     }
+}
+
+GSMMessage::GSMMessage(string m, int l) : message(m), length(l)
+{
+}
+GSMMessage::GSMMessage():message(""), length(0)
+{}
+
+int GSMMessage::getLength()
+{
+    return length;
+}
+
+void GSMMessage::setLength(int len)
+{
+    length = len;
+}
+
+string GSMMessage::getMessage()
+{
+    return message;
+}
+
+void GSMMessage::setMessage(string m)
+{
+    message = m;
 }

@@ -43,6 +43,7 @@ class PCSerial{
         uint8_t insCount;
         bool typeDone;
         bool debug;  
+        bool gsmMode;
         uint8_t bufferSize;  
         Thread rxThread;     
         static void threadStarter(void const *p);

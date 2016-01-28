@@ -13,4 +13,9 @@
 #define BOARD_LED_3 LED3
 #define BOARD_LED_4 LED4
 
+#define GSM_TX p28
+#define GSM_RTS p23
+#define GSM_RX p27
+#define GSM_CTS p22
+
 #endif

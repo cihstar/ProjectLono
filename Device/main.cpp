@@ -11,12 +11,12 @@
 #include "util.h"
 #include "modules.h"
 
-#include "FourWireSerial.h"
-
 //Module Declarations
 Flasher* modules::flasher[4];
 PCSerial* modules::pc;
 GSM* modules::gsm;
+SDCard* modules::sdCard;
+PressureSensor* modules::pressureSensor;
 
 /*** Main Function - Initialise Everything! ***/
 int main() {
@@ -28,12 +28,14 @@ int main() {
     util::printInfo("Welcome to Project Lono - Smart Rain Gauge");
     util::printInfo("PC Serial Link initialised");
     
-    /* Init GSM Module */
-    modules::gsm = new GSM(GSM_TX, GSM_RTS, GSM_RX, GSM_CTS);
+    /* Initialise SD Card */
+    modules::sdCard = new SDCard(SD_MOSI, SD_MISO, SD_CLK, SD_CS);
+    util::printInfo("SD Card initialised");
+    
+    /* Initialise GSM Module */
+    modules::gsm = new GSM(GSM_TX, GSM_RTS, GSM_RX, GSM_CTS, GSM_RESET, GSM_TERM_ON);
     ///probably will later be done in wireless module?
     util::printInfo("GSM Module initialised");
-    
-    /* Init SD Card */
     
     /* Init LCD Screen and Buttons */
     
@@ -52,6 +54,7 @@ int main() {
     /* Init Battery level sensor */
     
     /* Init Pressure Sensor */
+    modules::pressureSensor = new PressureSensor(P_SENSE_OUT, P_SENSE_SLEEP);
     
     /* Finish Boot up Info Printing */
     util::printInfo("System Time -> " + util::getTimeStamp());
@@ -61,4 +64,9 @@ int main() {
     util::printBreak();    
     
     /* Threads in various objects will now be running */
+    
+    /* Start pressure sensor readings */
+    modules::pressureSensor->setDimensions(0.015, 0.2, 0.001);
+    modules::pressureSensor->calibrate(10514, 22629, 0.12);
+    modules::pressureSensor->start(10000, 10, 100);
 }

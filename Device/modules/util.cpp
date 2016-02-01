@@ -12,20 +12,28 @@ namespace util
 
     void printInfo(string s)
     {   
-        modules::pc->print("Info: "+s);
+        string str = "Info: "+s;
+        modules::sdCard->writeToLog(str);
+        modules::pc->print(str);
     }
 
     void printDebug(string s)
     {        
         #ifdef DEBUG
             if (modules::pc->getDebug())
-                modules::pc->print("Debug: "+s);
+            {
+                string str = "Debug: "+s;
+                modules::sdCard->writeToLog(str);
+                modules::pc->print(str);
+            }
         #endif
     }
 
     void printError(string s)
     {        
-        modules::pc->print("Error: "+s);
+        string str = "Error: "+s;
+        modules::sdCard->writeToLog(str);
+        modules::pc->print(str);
     }
 
     void printBreak()
@@ -35,6 +43,7 @@ namespace util
     
     void print(string s)
     {
+        modules::sdCard->writeToLog(s);        
         modules::pc->print(s);
     }
     
@@ -45,6 +54,10 @@ namespace util
     
     bool setTime(string date, string stime)
     {
+        if (date.length() != 10 && stime.length() != 8)
+        {
+            return false;
+        }
         if (date != "" && stime !=""
             && isNumber(date[0]) && isNumber(date[1])
             && date[2] == '/'

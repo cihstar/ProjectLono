@@ -17,20 +17,20 @@ void FourWireSerial::recieveByte()
 {
     char c = serial.getc();
     if (c == '\n' && lastC == '\r')
-    {
-        //either start or end of message
+    {        
         if (!messageStarted)
         {
             //Start of message
             messageStarted = true;
             len = 0;
+            newm.resetLength();
         }
         else
         {
             //end of message
             messageStarted = false;
             charBuffer[len] = '\0';
-            newm.setMessage(charBuffer);
+            newm.setMessage(charBuffer, newm.getLength());
             messageQueue.put(&newm);
         }
     }
@@ -45,8 +45,44 @@ void FourWireSerial::recieveByte()
             }
             else
             {
-                charBuffer[len] = c;
-                len++;
+                if (c == ',')
+                {
+                    if (!bracketOpen)
+                    {
+                        //new agrument
+                         charBuffer[len] = '\0';
+                         newm.setMessage(charBuffer, newm.getLength()
+                         newm.upLength();
+                         len = 0;   
+                    }
+                }
+                
+                else if (c == '(' && !bracketOpen)
+                {
+                    bracketOpen = true;
+                    charBuffer[len] = c;
+                    len++;
+                }
+                
+                else if (c == ')' && bracketOpen )
+                {
+                    bracketOpen = false;
+                    charBuffer[len] = c;
+                    len++;
+                }
+                
+                else if ( c == ' ' && lastC == ':')
+                {
+                    charBuffer[len] = '\0';
+                    newm.setMessage(charBuffer, newm.getLength()
+                    newm.upLength();  
+                }
+                
+                else 
+                {
+                    charBuffer[len] = c;
+                    len++;
+                }
                 RTS = 1;
             }
         }
@@ -63,7 +99,7 @@ void FourWireSerial::setBaud(int baud)
 
 void FourWireSerial::sendByte(char byte)
 {
-    //while (CTS == 0); //wait for CTS is high to send
+    while (CTS == 0); //wait for CTS is high to send
     serial.putc((char) byte);
 }
 
@@ -96,9 +132,14 @@ int GSMMessage::getLength()
     return length;
 }
 
-void GSMMessage::setLength(int len)
+void GSMMessage::upLength()
 {
-    length = len;
+    length++;
+}
+
+void GSMMessage::resetLength()
+{
+    length = 0;
 }
 
 string GSMMessage::getMessage()

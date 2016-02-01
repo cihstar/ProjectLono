@@ -1,10 +1,10 @@
 GCC_BIN = 
 PROJECT = lono
-OBJECTS = ./modules/Flasher.o ./modules/util.o ./modules/PCSerial.o ./main.o ./modules/GSM.o ./modules/FourWireSerial.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/HAL_CM3.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/SVC_Table.o ./rtx/TARGET_CORTEX_M/HAL_CM.o ./rtx/TARGET_CORTEX_M/RTX_Conf_CM.o ./rtx/TARGET_CORTEX_M/rt_CMSIS.o ./rtx/TARGET_CORTEX_M/rt_Event.o ./rtx/TARGET_CORTEX_M/rt_List.o ./rtx/TARGET_CORTEX_M/rt_Mailbox.o ./rtx/TARGET_CORTEX_M/rt_MemBox.o ./rtx/TARGET_CORTEX_M/rt_Mutex.o ./rtx/TARGET_CORTEX_M/rt_Robin.o ./rtx/TARGET_CORTEX_M/rt_Semaphore.o ./rtx/TARGET_CORTEX_M/rt_System.o ./rtx/TARGET_CORTEX_M/rt_Task.o ./rtx/TARGET_CORTEX_M/rt_Time.o ./rtos/Mutex.o ./rtos/RtosTimer.o ./rtos/Semaphore.o ./rtos/Thread.o
+OBJECTS = ./modules/PressureSensor.o ./modules/PCRxTask.o ./SDFileSystem/SDFileSystem.o ./SDFileSystem/FATFileSystem/FATDirHandle.o ./SDFileSystem/FATFileSystem/FATFileHandle.o ./SDFileSystem/FATFileSystem/FATFileSystem.o ./SDFileSystem/FATFileSystem/ChaN/ccsbcs.o ./SDFileSystem/FATFileSystem/ChaN/diskio.o ./SDFileSystem/FATFileSystem/ChaN/ff.o ./modules/SDCard.o ./modules/Flasher.o ./modules/util.o ./modules/PCSerial.o ./main.o ./modules/GSM.o ./modules/FourWireSerial.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/HAL_CM3.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/SVC_Table.o ./rtx/TARGET_CORTEX_M/HAL_CM.o ./rtx/TARGET_CORTEX_M/RTX_Conf_CM.o ./rtx/TARGET_CORTEX_M/rt_CMSIS.o ./rtx/TARGET_CORTEX_M/rt_Event.o ./rtx/TARGET_CORTEX_M/rt_List.o ./rtx/TARGET_CORTEX_M/rt_Mailbox.o ./rtx/TARGET_CORTEX_M/rt_MemBox.o ./rtx/TARGET_CORTEX_M/rt_Mutex.o ./rtx/TARGET_CORTEX_M/rt_Robin.o ./rtx/TARGET_CORTEX_M/rt_Semaphore.o ./rtx/TARGET_CORTEX_M/rt_System.o ./rtx/TARGET_CORTEX_M/rt_Task.o ./rtx/TARGET_CORTEX_M/rt_Time.o ./rtos/Mutex.o ./rtos/RtosTimer.o ./rtos/Semaphore.o ./rtos/Thread.o
 SYS_OBJECTS = ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/board.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/cmsis_nvic.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/retarget.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/startup_LPC17xx.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/system_LPC17xx.o 
-INCLUDE_PATHS = -I. -I./modules -I./rtos -I./rtx/TARGET_CORTEX_M -I./rtx/TARGET_CORTEX_M/TARGET_M3 -I./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC -I./mbed -I./mbed/TARGET_LPC1768 -I./mbed/TARGET_LPC1768/TARGET_NXP -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X/TARGET_MBED_LPC1768 -I./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM 
-LIBRARY_PATHS = -L./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM 
-LIBRARIES = -lmbed 
+INCLUDE_PATHS = -I. -I./modules -I./rtos -I./rtx/TARGET_CORTEX_M -I./rtx/TARGET_CORTEX_M/TARGET_M3 -I./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC -I./mbed -I./mbed/TARGET_LPC1768 -I./mbed/TARGET_LPC1768/TARGET_NXP -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X/TARGET_MBED_LPC1768 -I./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM -I./SDFileSystem -I./SDFileSystem/FATFileSystem -I./SDFileSystem/FATFileSystem/ChaN
+LIBRARY_PATHS = -L./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM
+LIBRARIES = -lmbed
 LINKER_SCRIPT = ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/LPC1768.ld
 ODEL = $(OBJECTS)
 
@@ -82,4 +82,4 @@ all:
 	move "$(PROJECT).bin" "bin\$(PROJECT).bin"
 	copy "bin\$(PROJECT).bin" "F:\"
 	@echo Deleting files
-	del $(PROJECT).elf $(PROJECT).hex $(PROJECT).map $(PROJECT).lst *.o *.d "modules\*.d" "modules\*.o"
+	del $(PROJECT).elf $(PROJECT).hex $(PROJECT).map $(PROJECT).lst *.o *.d "modules\*.d" "modules\*.o" "SDFileSystem\*.d" "SDFileSystem\*.o" "SDFileSystem\FATFileSystem\*.d" "SDFileSystem\FATFileSystem\*.o" "SDFileSystem\FATFileSystem\ChaN\*.d" "SDFileSystem\FATFileSystem\ChaN\*.o"

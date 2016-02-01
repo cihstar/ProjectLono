@@ -9,13 +9,14 @@
 
 class GSMMessage {
     private:
-        string message;
+        string message[32];
         int length;
     public:
         GSMMessage(string m, int l);
         GSMMessage();
         int getLength();
-        void setLength(int len);
+        void upLength();
+        void resetLength();
         string getMessage();
         void setMessage(string m);
 };

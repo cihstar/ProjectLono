@@ -1,8 +1,9 @@
 #include "GSM.h"
 #include "util.h"
 
-GSM::GSM(PinName tx, PinName cts, PinName rx, PinName rts) : serial(tx,cts,rx,rts),
-rxThread(&GSM::threadStarter, this, osPriorityNormal,1024), print(false)
+GSM::GSM(PinName tx, PinName cts, PinName rx, PinName rts, PinName termOn, PinName reset) : serial(rx,cts,tx,rts),
+rxThread(&GSM::threadStarter, this, osPriorityNormal,1024), print(false),
+termOn(termOn), reset(reset)
 {    
 }
 

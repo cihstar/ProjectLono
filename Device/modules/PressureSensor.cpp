@@ -136,7 +136,8 @@ void PressureSensor::timerTask()
     {
         float reading = totalRain * funnelRatio; 
         util::printInfo("Rainfall reading to send. " + util::ToString(reading) +" mm of rain since last send");
-        modules::sdCard->writeReading(util::ToString(reading));        
+        modules::sdCard->writeReading(util::ToString(reading));   
+        modules::gsm->httpGet("/time");     
         samples = 0;
         totalRain = 0;
     }

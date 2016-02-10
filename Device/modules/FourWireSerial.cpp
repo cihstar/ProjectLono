@@ -4,7 +4,7 @@
 #include <string>
 
 FourWireSerial::FourWireSerial(PinName rx, PinName cts, PinName tx, PinName rts) :
-RTS(rts), CTS(cts), serial(tx,rx), newm()
+RTS(rts), CTS(cts), serial(tx,rx), newm(), bracketOpen(false)
 {
     serial.attach(this, &FourWireSerial::recieveByte);
 }
@@ -15,8 +15,8 @@ FourWireSerial::~FourWireSerial()
 
 void FourWireSerial::recieveByte()
 {
-    char c = serial.getc();
-    if (c == '\n' && lastC == '\r')
+    char c = serial.getc();    
+    if ((c == '\n' && lastC == '\r') | (c=='N' && lastC == 'R'))
     {        
         if (!messageStarted)
         {
@@ -29,7 +29,7 @@ void FourWireSerial::recieveByte()
         {
             //end of message
             messageStarted = false;
-            charBuffer[len] = '\0';
+            charBuffer[len-1] = '\0';
             newm.setMessage(charBuffer, newm.getLength());
             messageQueue.put(&newm);
         }
@@ -42,49 +42,13 @@ void FourWireSerial::recieveByte()
             if (len >= FWS_BUFFER_LENGTH-1)
             {
                 RTS = 0;
-            }
-            else
+            }            
+            else 
             {
-                if (c == ',')
-                {
-                    if (!bracketOpen)
-                    {
-                        //new agrument
-                         charBuffer[len] = '\0';
-                         newm.setMessage(charBuffer, newm.getLength()
-                         newm.upLength();
-                         len = 0;   
-                    }
-                }
-                
-                else if (c == '(' && !bracketOpen)
-                {
-                    bracketOpen = true;
-                    charBuffer[len] = c;
-                    len++;
-                }
-                
-                else if (c == ')' && bracketOpen )
-                {
-                    bracketOpen = false;
-                    charBuffer[len] = c;
-                    len++;
-                }
-                
-                else if ( c == ' ' && lastC == ':')
-                {
-                    charBuffer[len] = '\0';
-                    newm.setMessage(charBuffer, newm.getLength()
-                    newm.upLength();  
-                }
-                
-                else 
-                {
-                    charBuffer[len] = c;
-                    len++;
-                }
-                RTS = 1;
+                charBuffer[len] = c;
+                len++;
             }
+            RTS = 1;
         }
     }
     
@@ -121,11 +85,14 @@ GSMMessage* FourWireSerial::getNextMessage()
     }
 }
 
-GSMMessage::GSMMessage(string m, int l) : message(m), length(l)
+GSMMessage::GSMMessage(string m, int l) : length(l)
 {
+    message[0] = m;
 }
-GSMMessage::GSMMessage():message(""), length(0)
-{}
+GSMMessage::GSMMessage():length(0)
+{
+    message[0] = "";
+}
 
 int GSMMessage::getLength()
 {
@@ -142,12 +109,22 @@ void GSMMessage::resetLength()
     length = 0;
 }
 
-string GSMMessage::getMessage()
+string GSMMessage::getMessage(int i)
 {
-    return message;
+    return message[i];
 }
 
-void GSMMessage::setMessage(string m)
+void GSMMessage::addMessage(string m)
 {
-    message = m;
+    message[length] = m;
+    length++;
+}
+
+void GSMMessage::setMessage(string m, int i)
+{
+    if (i > length)
+    {
+        length = i;
+    }
+    message[i] = m;
 }

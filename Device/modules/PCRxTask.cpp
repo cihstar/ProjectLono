@@ -10,6 +10,7 @@ void PCSerial::rxTask()
     string mIns[3];
     while(true)
     {     
+        util::printDebug("Waiting for PC Message");
         m = modules::pc->getNextMessage();
         mType = m->getMessageType();
         mIns[0] = m->getInstruction(0);
@@ -29,6 +30,7 @@ void PCSerial::rxTask()
             }
             else
             {
+                util::printDebug("hello");
                 modules::gsm->sendCommand(mType);
             }
         }  

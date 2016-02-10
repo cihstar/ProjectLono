@@ -9,7 +9,7 @@
 
 class GSMMessage {
     private:
-        string message[32];
+        string message[8];
         int length;
     public:
         GSMMessage(string m, int l);
@@ -17,8 +17,9 @@ class GSMMessage {
         int getLength();
         void upLength();
         void resetLength();
-        string getMessage();
-        void setMessage(string m);
+        string getMessage(int i=0);
+        void setMessage(string m, int i);
+        void addMessage(string m);
 };
 
 class FourWireSerial {
@@ -42,6 +43,7 @@ class FourWireSerial {
     char lastC;
     bool messageStarted;
     GSMMessage newm;
+    bool bracketOpen;
 };
 
 #endif

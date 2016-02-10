@@ -34,6 +34,7 @@ class PCSerial{
         PCMessage* getNextMessage();
         void print(string s);
         Queue<PCMessage, 8> messageQueue;
+        void setEnableInput(bool b);
     private:
         Serial ser;
         void rxByte();
@@ -50,6 +51,7 @@ class PCSerial{
         static void threadStarter(void const *p);
         void rxTask();  
         PCMessage newm;    
+        bool enableInput;
 };
 
 #endif

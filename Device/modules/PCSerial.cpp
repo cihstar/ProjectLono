@@ -1,7 +1,7 @@
 #include "PCSerial.h"
 
 PCSerial::PCSerial(PinName tx, PinName rx, uint8_t size) : ser(tx,rx), echo(true), 
-rxThread(&PCSerial::threadStarter, this, osPriorityNormal,1024), newm()
+rxThread(&PCSerial::threadStarter, this, osPriorityNormal,1024), newm(), enableInput(false)
 {
     ser.attach(this,&PCSerial::rxByte);
     count = 0;
@@ -36,9 +36,9 @@ void PCSerial::addToBuffer(char c)
 
 void PCSerial::rxByte()
 {
+    if (!enableInput) return;
     char c = ser.getc();
-    if (echo)
-        ser.printf("%c",c); 
+    if (echo) ser.printf("%c",c); 
     if ( c == 8 || c == 127)
     {
         //backspace
@@ -133,6 +133,11 @@ void PCSerial::print(string s)
 {
     //write to log.txt on sd card
     ser.printf("%s\r\n",s.c_str());    
+}
+
+void PCSerial::setEnableInput(bool b)
+{
+    enableInput = b;
 }
 
 PCMessage::PCMessage(string t, string i, string i1, string i2)

@@ -1,6 +1,6 @@
 GCC_BIN = 
 PROJECT = lono
-OBJECTS = ./modules/PressureSensor.o ./modules/PCRxTask.o ./SDFileSystem/SDFileSystem.o ./SDFileSystem/FATFileSystem/FATDirHandle.o ./SDFileSystem/FATFileSystem/FATFileHandle.o ./SDFileSystem/FATFileSystem/FATFileSystem.o ./SDFileSystem/FATFileSystem/ChaN/ccsbcs.o ./SDFileSystem/FATFileSystem/ChaN/diskio.o ./SDFileSystem/FATFileSystem/ChaN/ff.o ./modules/SDCard.o ./modules/Flasher.o ./modules/util.o ./modules/PCSerial.o ./main.o ./modules/GSM.o ./modules/FourWireSerial.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/HAL_CM3.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/SVC_Table.o ./rtx/TARGET_CORTEX_M/HAL_CM.o ./rtx/TARGET_CORTEX_M/RTX_Conf_CM.o ./rtx/TARGET_CORTEX_M/rt_CMSIS.o ./rtx/TARGET_CORTEX_M/rt_Event.o ./rtx/TARGET_CORTEX_M/rt_List.o ./rtx/TARGET_CORTEX_M/rt_Mailbox.o ./rtx/TARGET_CORTEX_M/rt_MemBox.o ./rtx/TARGET_CORTEX_M/rt_Mutex.o ./rtx/TARGET_CORTEX_M/rt_Robin.o ./rtx/TARGET_CORTEX_M/rt_Semaphore.o ./rtx/TARGET_CORTEX_M/rt_System.o ./rtx/TARGET_CORTEX_M/rt_Task.o ./rtx/TARGET_CORTEX_M/rt_Time.o ./rtos/Mutex.o ./rtos/RtosTimer.o ./rtos/Semaphore.o ./rtos/Thread.o
+OBJECTS = ./modules/BatteryLevel.o ./modules/UI.o ./modules/PressureSensor.o ./modules/PCRxTask.o ./SDFileSystem/SDFileSystem.o ./SDFileSystem/FATFileSystem/FATDirHandle.o ./SDFileSystem/FATFileSystem/FATFileHandle.o ./SDFileSystem/FATFileSystem/FATFileSystem.o ./SDFileSystem/FATFileSystem/ChaN/ccsbcs.o ./SDFileSystem/FATFileSystem/ChaN/diskio.o ./SDFileSystem/FATFileSystem/ChaN/ff.o ./modules/SDCard.o ./modules/Flasher.o ./modules/util.o ./modules/PCSerial.o ./main.o ./modules/GSM.o ./modules/FourWireSerial.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/HAL_CM3.o ./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC/SVC_Table.o ./rtx/TARGET_CORTEX_M/HAL_CM.o ./rtx/TARGET_CORTEX_M/RTX_Conf_CM.o ./rtx/TARGET_CORTEX_M/rt_CMSIS.o ./rtx/TARGET_CORTEX_M/rt_Event.o ./rtx/TARGET_CORTEX_M/rt_List.o ./rtx/TARGET_CORTEX_M/rt_Mailbox.o ./rtx/TARGET_CORTEX_M/rt_MemBox.o ./rtx/TARGET_CORTEX_M/rt_Mutex.o ./rtx/TARGET_CORTEX_M/rt_Robin.o ./rtx/TARGET_CORTEX_M/rt_Semaphore.o ./rtx/TARGET_CORTEX_M/rt_System.o ./rtx/TARGET_CORTEX_M/rt_Task.o ./rtx/TARGET_CORTEX_M/rt_Time.o ./rtos/Mutex.o ./rtos/RtosTimer.o ./rtos/Semaphore.o ./rtos/Thread.o
 SYS_OBJECTS = ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/board.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/cmsis_nvic.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/retarget.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/startup_LPC17xx.o ./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM/system_LPC17xx.o 
 INCLUDE_PATHS = -I. -I./modules -I./rtos -I./rtx/TARGET_CORTEX_M -I./rtx/TARGET_CORTEX_M/TARGET_M3 -I./rtx/TARGET_CORTEX_M/TARGET_M3/TOOLCHAIN_GCC -I./mbed -I./mbed/TARGET_LPC1768 -I./mbed/TARGET_LPC1768/TARGET_NXP -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X -I./mbed/TARGET_LPC1768/TARGET_NXP/TARGET_LPC176X/TARGET_MBED_LPC1768 -I./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM -I./SDFileSystem -I./SDFileSystem/FATFileSystem -I./SDFileSystem/FATFileSystem/ChaN
 LIBRARY_PATHS = -L./mbed/TARGET_LPC1768/TOOLCHAIN_GCC_ARM
@@ -19,7 +19,7 @@ SIZE    = $(GCC_BIN)arm-none-eabi-size
 
 
 CPU = -mcpu=cortex-m3 -mthumb 
-CC_FLAGS = $(CPU) -c -g -fno-common -fmessage-length=0 -Wextra -fno-exceptions -ffunction-sections -fdata-sections -fomit-frame-pointer -MMD -MP
+CC_FLAGS = $(CPU)  -std=c++11 -c -g -fno-common -fmessage-length=0 -Wextra -fno-exceptions -ffunction-sections -fdata-sections -fomit-frame-pointer -MMD -MP 
 CC_SYMBOLS = -DDEBUG -DTOOLCHAIN_GCC_ARM -DTOOLCHAIN_GCC -DARM_MATH_CM3 -DTARGET_CORTEX_M -DTARGET_LPC176X -DTARGET_NXP -DTARGET_MBED_LPC1768 -DTARGET_LPC1768 -D__CORTEX_M3 -DTARGET_M3 -DMBED_BUILD_TIMESTAMP=1452169262.5 -D__MBED__=1 
 
 LD_FLAGS = $(CPU) -Wl,--gc-sections --specs=nano.specs -u _printf_float -u _scanf_float -Wl,--wrap,main -Wl,-Map=$(PROJECT).map,--cref
@@ -78,8 +78,8 @@ DEPS = $(OBJECTS:.o=.d) $(SYS_OBJECTS:.o=.d)
 -include $(DEPS)
 
 all: 	
+	@echo Deleting files
+	del $(PROJECT).elf $(PROJECT).hex $(PROJECT).map $(PROJECT).lst *.o *.d "modules\*.d" "modules\*.o" "SDFileSystem\*.d" "SDFileSystem\*.o" "SDFileSystem\FATFileSystem\*.d" "SDFileSystem\FATFileSystem\*.o" "SDFileSystem\FATFileSystem\ChaN\*.d" "SDFileSystem\FATFileSystem\ChaN\*.o"
 	@echo Moving bin to bin directory and copying to board
 	move "$(PROJECT).bin" "bin\$(PROJECT).bin"
 	copy "bin\$(PROJECT).bin" "F:\"
-	@echo Deleting files
-	del $(PROJECT).elf $(PROJECT).hex $(PROJECT).map $(PROJECT).lst *.o *.d "modules\*.d" "modules\*.o" "SDFileSystem\*.d" "SDFileSystem\*.o" "SDFileSystem\FATFileSystem\*.d" "SDFileSystem\FATFileSystem\*.o" "SDFileSystem\FATFileSystem\ChaN\*.d" "SDFileSystem\FATFileSystem\ChaN\*.o"

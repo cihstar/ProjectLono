@@ -10,13 +10,16 @@
 #include "pindef.h"
 #include "util.h"
 #include "modules.h"
+#include "Dimensions.h"
 
-//Module Declarations
+/** Module Declarations **/
 Flasher* modules::flasher[4];
 PCSerial* modules::pc;
 GSM* modules::gsm;
 SDCard* modules::sdCard;
 PressureSensor* modules::pressureSensor;
+UI*  modules::ui;
+BatteryLevel* modules::battery;
 
 /*** Main Function - Initialise Everything! ***/
 int main() {
@@ -32,6 +35,10 @@ int main() {
     util::printInfo("Welcome to Project Lono - Smart Rain Gauge");
     util::printInfo("PC Serial Link initialised");
     
+    /* Init LCD Screen and Buttons */
+    modules::ui = new UI(LCD_SDA, LCD_SCL, LCD_RST, PB1, PB2, PB3);
+    modules::ui->writeText("Project Lono Starting Up...");
+    
     /* Initialise SD Card */
     modules::sdCard = new SDCard(SD_MOSI, SD_MISO, SD_CLK, SD_CS);
     util::printInfo("SD Card initialised");
@@ -39,10 +46,8 @@ int main() {
     /* Initialise GSM Module */
     util::printInfo("GSM Starting up...");
     modules::gsm = new GSM(GSM_TX, GSM_RTS, GSM_RX, GSM_CTS, GSM_RESET, GSM_TERM_ON);
-    //configure server connection
-    modules::gsm->configureServerConnection(serverUrl);    
-    //register with server
-    if (modules::gsm->httpPost("/reg","id:"+deviceId) == "Done")
+    modules::gsm->configureServerConnection(serverUrl);    // Configure server connection
+    if (modules::gsm->httpPost("/reg","id:"+deviceId) == "Done") //register with server
     {
         util::printInfo("Successfully registered with server.");
         util::printInfo("Device ID = "+deviceId);
@@ -51,8 +56,7 @@ int main() {
     {
         util::printError("Could not register with server.");
     }
-    //get time from server
-    string r = modules::gsm->httpGet("/time");
+    string r = modules::gsm->httpGet("/time"); //get time from server
     util::printDebug(r);
     if (r.length() == 19)
     {
@@ -65,8 +69,7 @@ int main() {
     }
     ///probably will later be done in wireless module?
     util::printInfo("GSM Module initialised");
-    
-    /* Init LCD Screen and Buttons */
+   
     
     /* Initialise Board LED Flasher Objects */
     modules::flasher[0] = new Flasher(BOARD_LED_1);
@@ -81,9 +84,12 @@ int main() {
     /* add to send queue to get current time from wireless link */
     
     /* Init Battery level sensor */
+    modules::battery = new BatteryLevel(BATTERY_LEVEL);
+    util::printInfo("Battery Level: " + util::ToString(modules::battery->read()) + "V");
     
     /* Init Pressure Sensor */
     modules::pressureSensor = new PressureSensor(P_SENSE_OUT, P_SENSE_SLEEP);
+    util::printInfo("Pressure Sensor Initialised");
     
     /* Finish Boot up Info Printing */
     util::printInfo("System Time -> " + util::getTimeStamp());
@@ -96,9 +102,15 @@ int main() {
     modules::pc->setEnableInput(true);
     
     /* Start pressure sensor readings */
-    modules::pressureSensor->setDimensions(0.015, 0.2, 0.001);
-    modules::pressureSensor->calibrate(10514, 22629, 0.12);
-    modules::pressureSensor->start(10000, 10, 100);
+    Dimensions d = modules::sdCard->readDimensions();
+    //0.015, 0.2, 0.001, 0.0015, 0.01
+    modules::pressureSensor->setDimensions(d);
+    //10514, 22629, 0.12
+    Calibrate c = modules::sdCard->readCalibrateData();
+    modules::pressureSensor->calibrate(c);
+    modules::pressureSensor->setTiming(10000, 10, 100);
+    modules::pressureSensor->start();
     
-     modules::gsm->httpGet("/FROM_MAIN");
+    /* Start Battery Level timer */
+    modules::battery->startTimer(60000);
 }

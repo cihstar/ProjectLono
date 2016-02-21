@@ -39,6 +39,21 @@ void PCSerial::rxByte()
     if (!enableInput) return;
     char c = ser.getc();
     if (echo) ser.printf("%c",c); 
+    if(gsmMode)
+    {
+        if(c=='\r')
+        {
+            addToBuffer('\0');
+            count = 0;
+            newm.setMessageType(util::ToString(buffer));
+            messageQueue.put(&newm);  
+        }
+        else
+        {
+            addToBuffer(c);
+        }
+        return;
+    }
     if ( c == 8 || c == 127)
     {
         //backspace
@@ -63,9 +78,10 @@ void PCSerial::rxByte()
             count = 0;
             insCount = 0;
             newm.setMessageType(util::ToString(buffer));
-            newm.setInstruction(0,"");
-            newm.setInstruction(1,"");
-            newm.setInstruction(2,"");
+            for (int i = 0; i < M; i++)
+            {
+                newm.setInstruction(i,"");
+            }
             messageQueue.put(&newm);  
         }
         else if ( c >= 33 && c <= 126)
@@ -81,7 +97,7 @@ void PCSerial::rxByte()
             addToBuffer('\0');
             newm.setInstruction(insCount, util::ToString(buffer));
             insCount++;
-            for (int i = insCount; i < 3; i++)
+            for (int i = insCount; i < M; i++)
             {
                 newm.setInstruction(i,"");
             }

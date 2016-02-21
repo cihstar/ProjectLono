@@ -9,7 +9,8 @@
 #include "Flasher.h"
 #include "SDCard.h"
 #include "PressureSensor.h"
-
+#include "ui.h"
+#include "BatteryLevel.h"
 
 namespace modules
 {
@@ -18,5 +19,7 @@ namespace modules
     extern Flasher* flasher[4];  
     extern SDCard* sdCard;  
     extern PressureSensor* pressureSensor;
+    extern UI* ui;
+    extern BatteryLevel* battery;
 }
 #endif

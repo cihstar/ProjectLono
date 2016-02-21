@@ -70,7 +70,6 @@ void GSM::txTask()
 {
     while(1)
     {
-        //util::printDebug("hello from tx task, waiting for reply = "+util::ToString(waitingForReply));
         Thread::wait(5);
         //send messages from queue
         if (!waitingForReply)
@@ -87,10 +86,8 @@ void GSM::txTask()
 }
 
 void GSM::configureServerConnection(string url)
-{
-    util::printDebug("1");
-    waitForLongOperationToFinish();
-    util::printDebug("2");
+{    
+    waitForLongOperationToFinish();    
     longOperationInProg = true;
     GSMMessage* m;
     m = sendCommand("AT^SICS=0,conType,GPSR0");
@@ -153,6 +150,7 @@ string GSM::httpPost(string url, string data)
     if (!connectedToServer)
     {
         util::printError("HTTP Operation failed. Not connected to server");
+        longOperationInProg = false;
         return "ERROR";
     }
     GSMMessage *m;
@@ -180,6 +178,7 @@ string GSM::httpGet(string url)
     if (!connectedToServer)
     {
         util::printError("HTTP Operation failed. Not connected to server");
+        longOperationInProg = false;
         return "ERROR";
     }
     GSMMessage *m;
@@ -280,4 +279,10 @@ GSMMessage* GSM::sendCommand(string c, int numResults)
 void GSM::setPrint(bool p)
 {
     print = p;
+}
+
+void GSM::sendCommandNoReply(string cmd)
+{
+    GSMMessage toSend(cmd,1);
+    sendQueue.put(&toSend);
 }

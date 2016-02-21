@@ -19,6 +19,7 @@ class GSM {
     string httpGet(string url);
     void configureServerConnection(string url);
     void timeoutFunction();
+    void sendCommandNoReply(string cmd);
     
   private:
     FourWireSerial serial;

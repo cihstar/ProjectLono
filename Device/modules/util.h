@@ -14,6 +14,8 @@ namespace util
     void print(std::string s);
     void printBreak();
     int ToInt(std::string s);
+    uint16_t ToUint(std::string s);
+    float ToFloat(std::string s);
 
     template <typename T>
     std::string ToString(T val)

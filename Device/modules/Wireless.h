@@ -3,23 +3,22 @@
 
 #include <string>
 
-namespace Wireless
+class Wireless
 {
-    class Wireless
-    {
-        enum ConnectionType{NONE, GSM, XBEE};
-        
-        public:
-            Wireless();
-            ~Wireless();
-            void setConnectionMode(ConnectionType t);
-            ConnectionType getConnectionMode();
-            void txString(string str);        
-        private:
-            ConnectionType mode;
-            GSM* gsm;
-            XBEE* xbee;
-            Queue<string, 1024> txQueue;
+    enum ConnectionType{NONE, GSM, XBEE};
+    
+    public:
+        Wireless();
+        ~Wireless();
+        void setConnectionMode(ConnectionType t);
+        ConnectionType getConnectionMode();
+        void txString(string str);        
+    private:
+        ConnectionType mode;
+        GSM* gsm;
+        XBEE* xbee;
+        Queue<string, 1024> txQueue;
+};
             //send function adds to the queue
             
             //send thread:

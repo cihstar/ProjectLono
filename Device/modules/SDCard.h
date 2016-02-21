@@ -4,21 +4,7 @@
 #include "mbed.h"
 #include "SDFileSystem.h"
 #include <string>
-
-class Dimensions
-{
-    public:
-        Dimensions(float rTube, float rFunnel, float rOutTube);
-        ~Dimensions();
-        void set(float rTube, float rFunnel, float rOutTube);
-        float getTubeRadius();
-        float getFunnelRadius();
-        float getOutTubeRadius();
-    private:
-        float tubeRadius;
-        float funnelRadius;
-        float outTubeRadius;
-};
+#include "Dimensions.h"
 
 class SDCard
 {
@@ -30,6 +16,9 @@ class SDCard
         
         Dimensions readDimensions();
         void writeDimensions(Dimensions d);
+        
+        Calibrate readCalibrateData();
+        void writeCalibrateData(Calibrate c);
     
     private:
       //  SDFileSystem sd;

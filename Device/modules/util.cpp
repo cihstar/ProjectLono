@@ -9,6 +9,16 @@ namespace util
     {
         return atoi(s.c_str());
     }
+    
+    uint16_t ToUint(std::string s)
+    {
+        return atoi(s.c_str());
+    }
+    
+    float ToFloat(std::string s)
+    {
+        return std::atof(s.c_str());
+    }
 
     void printInfo(string s)
     {   

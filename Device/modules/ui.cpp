@@ -1,10 +1,16 @@
 #include "ui.h"
 #include "modules.h"
+<<<<<<< HEAD
 #include "rtos.h"
 
 UI::UI(PinName sda, PinName scl, PinName rst, PinName b1, PinName b2, PinName b3):
 lcd(sda,scl), buttons{b1,b2,b3}, reset(rst), timeout(timerStarter, osTimerPeriodic, this),
 Timeout(false)
+=======
+
+UI::UI(PinName sda, PinName scl, PinName rst, PinName b1, PinName b2, PinName b3):
+lcd(sda,scl), buttons{b1,b2,b3}, reset(rst)
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 {
     reset = 1;       
     sendCommand(0x38,0,0); //init lcd. 8-bit I2C, 2 line display, normal font, normal instructions
@@ -13,6 +19,7 @@ Timeout(false)
 
 UI::~UI(){}
 
+<<<<<<< HEAD
 void UI::timerStarter(void const* p)
 {
     UI *instance = (UI*)p;
@@ -28,6 +35,10 @@ bool UI::sendCommand(char byte, bool rs, bool rw)
 {
     Timeout = false;
     timeout.start(100);
+=======
+bool UI::sendCommand(char byte, bool rs, bool rw)
+{
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
     char addr;
     char control;
     char send[2];
@@ -53,15 +64,23 @@ bool UI::sendCommand(char byte, bool rs, bool rw)
     send[0] = control;
     send[1] = byte;
         
+<<<<<<< HEAD
     if (!waitOnBusy())
     {
         return false;   
     }
+=======
+    waitOnBusy();
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
     
     return lcd.write(addr, send, 2);
 }
 
+<<<<<<< HEAD
 bool UI::waitOnBusy()
+=======
+void UI::waitOnBusy()
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 {
     char addr = 0x7D;
     char control = 0x80;
@@ -72,6 +91,7 @@ bool UI::waitOnBusy()
     {
         lcd.write(addr, &control, 1);
         lcd.read(addr, &r, 1);
+<<<<<<< HEAD
         if (Timeout)
         {
             return false;
@@ -80,6 +100,10 @@ bool UI::waitOnBusy()
      while( (r & 0x80) == 0);
      
      return true;
+=======
+    }
+     while( (r & 0x80) == 0);
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 }
 
 void UI::clearDisplay()
@@ -143,10 +167,14 @@ void UI::writeText(string text)
 {
     clearDisplay();
     returnHome();
+<<<<<<< HEAD
     if (!(sendCommand(0x80,0,0)))
     {   //send DDRAM address to 0.
         return;
     }
+=======
+    sendCommand(0x80,0,0); //send DDRAM address to 0.
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
     
     int max;
     if (text.length() > 80)
@@ -160,9 +188,13 @@ void UI::writeText(string text)
     
     for (int i = 0; i<max; i++)
     {
+<<<<<<< HEAD
         if (!sendCommand((char)text[i],1,0))
         {
             return;
         }
+=======
+        sendCommand((char)text[i],1,0);
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
     }
 }

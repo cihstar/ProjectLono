@@ -11,6 +11,7 @@ SDCard::~SDCard(){}
 
 void SDCard::writeToLog(string s)
 {
+<<<<<<< HEAD
     if (active)
     {
         FILE *fp = fopen("/sd/log.txt", "w");
@@ -38,10 +39,78 @@ void SDCard::writeReading(string s)
 }
 
 Dimensions SDCard::readDimensions()
+=======
+    FILE *fp = fopen("/sd/log.txt", "w");
+    if(fp == NULL) {
+        util::printError("Could not open log file for write\n");
+        return;
+    }
+    fprintf(fp, "%s\r\n", s);
+    fclose(fp);
+}
+
+void SDCard::writeReading(string s)
+{
+    FILE *fp = fopen("/sd/data.txt", "w");
+    if(fp == NULL) {
+        util::printError("Could not open readings data file for write\n");
+        return;
+    }
+    fprintf(fp, "%s\r\n", s);
+    fclose(fp);
+}
+
+Dimensions SDCard::readDimensions()
+{
+    char line[128];
+    
+    Dimensions ret = {0,0,0,0,0};
+    
+    FILE *fp = fopen("/sd/dimensions.txt","r");
+    if (fp=NULL)
+    {
+        util::printError("Could not read from dimensions file\n");
+        return ret;
+    }
+    if (fgets(line,128,fp) == NULL)
+    {
+        util::printError("unable to read dimensions\r\n");
+        return ret;
+    }
+    
+    fclose(fp);
+    
+    string str(line);
+    int nextComma = -1;
+    float vals[5];
+       
+    
+    for (int i = 0; i < 5; i++)
+    {
+        nextComma = str.find(",");        
+        if (nextComma == -1)
+        {
+            util::printError("Error parsing dimensions string from sd card");
+            return ret;
+        }   
+        
+        vals[i] = std::atof((str.substr(0,str.length() - nextComma)).c_str());
+        str = str.substr(nextComma);
+        
+    }
+   
+    
+    Dimensions d= {vals[0], vals[1], vals[2], vals[3], vals[4] };
+    return d;
+}
+
+void SDCard::writeDimensions(Dimensions d)
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 {
     Dimensions ret = {0,0,0,0,0};
     if (active)
     {
+<<<<<<< HEAD
         char line[128];
         
         FILE *fp = fopen("/sd/dimensions.txt","r");
@@ -97,10 +166,18 @@ void SDCard::writeDimensions(Dimensions d)
         fprintf(fp, "%f,%f,%f,%f,%f,", d.tubeRadius, d.funnelRadius, d.outTubeRadius, d.outTubeWall, d.pressureSensorTubeRadius);
         fclose(fp);
     }
+=======
+        util::printError("Could not open file for write\n");
+        return;
+    }
+    fprintf(fp, "%f,%f,%f,%f,%f,", d.tubeRadius, d.funnelRadius, d.outTubeRadius, d.outTubeWall, d.pressureSensorTubeRadius);
+    fclose(fp);
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 }
 
 Calibrate SDCard::readCalibrateData()
 {
+<<<<<<< HEAD
     Calibrate ret = {0,0,0.0f};
     if (active)
     {
@@ -152,10 +229,60 @@ Calibrate SDCard::readCalibrateData()
         return d;
     }
     return ret;
+=======
+    char line[128];
+    Calibrate ret = {0,0,0};
+    
+    FILE *fp = fopen("/sd/calibrate.txt","r");
+    if (fp=NULL)
+    {
+        util::printError("Could not read from calibration file\n");
+        return ret;
+    }
+    if (fgets(line,128,fp) == NULL)
+    {
+        util::printError("unable to read calibration data fule\r\n");
+        return ret;
+    }
+    
+    fclose(fp);
+    
+    string str(line);
+    int nextComma = -1;
+    
+    uint16_t vals[2];
+    float full;
+    
+    for (int i = 0; i < 3; i++)
+    {
+        nextComma = str.find(",");        
+        if (nextComma == -1)
+        {
+            util::printError("Error parsing calibration string from sd card");
+            return ret;
+        }   
+        
+        if (i == 2)
+        {
+            full = std::atof((str.substr(0,str.length() - nextComma)).c_str());
+        }
+        else
+        {
+            vals[i] = std::atof((str.substr(0,str.length() - nextComma)).c_str());
+        }
+        str = str.substr(nextComma);
+        
+    }
+   
+    
+    Calibrate d= {vals[0], vals[1], vals[2]};
+    return d;
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 }
 
 void SDCard::writeCalibrateData(Calibrate c)
 {
+<<<<<<< HEAD
     if (active)
     {
         FILE *fp = fopen("/sd/calibrate.txt","w");
@@ -167,4 +294,14 @@ void SDCard::writeCalibrateData(Calibrate c)
         fprintf(fp, "%d,%d,%f,", c.fullAdc, c.emptyAdc, c.fullHeight);
         fclose(fp);
     }
+=======
+    FILE *fp = fopen("/sd/calibrate.txt","w");
+    if (fp==NULL)
+    {
+        util::printError("Could not open file for write\n");
+        return;
+    }
+    fprintf(fp, "%d,%d,%f,", c.fullAdc, c.emptyAdc, c.fullHeight);
+    fclose(fp);
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 }

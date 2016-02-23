@@ -17,7 +17,11 @@ namespace util
     
     float ToFloat(std::string s)
     {
+<<<<<<< HEAD
         return atof(s.c_str());
+=======
+        return std::atof(s.c_str());
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
     }
 
     void printInfo(string s)

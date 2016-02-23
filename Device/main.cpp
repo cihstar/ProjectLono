@@ -11,6 +11,7 @@
 #include "util.h"
 #include "modules.h"
 #include "Dimensions.h"
+<<<<<<< HEAD
 #include "Wireless.h"
 
 class Watchdog {
@@ -38,13 +39,21 @@ void timerTask(void const *p)
 }
 
 /** Module Declarations **/
+=======
+
+/** Module Declarations **/
+Flasher* modules::flasher[4];
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 PCSerial* modules::pc;
 SDCard* modules::sdCard;
 PressureSensor* modules::pressureSensor;
 UI*  modules::ui;
 BatteryLevel* modules::battery;
+<<<<<<< HEAD
 GSM* modules::gsm;
 XBEE* modules::xbee;
+=======
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 
 /*** Main Function - Initialise Everything! ***/
 int main() {
@@ -66,15 +75,52 @@ int main() {
     util::printInfo("Welcome to Project Lono - Smart Rain Gauge");
     util::printInfo("PC Serial Link initialised");
     
+<<<<<<< HEAD
     if (startedFromWatchdog)
+=======
+    /* Init LCD Screen and Buttons */
+    modules::ui = new UI(LCD_SDA, LCD_SCL, LCD_RST, PB1, PB2, PB3);
+    modules::ui->writeText("Project Lono Starting Up...");
+    
+    /* Initialise SD Card */
+    modules::sdCard = new SDCard(SD_MOSI, SD_MISO, SD_CLK, SD_CS);
+    util::printInfo("SD Card initialised");
+    
+    /* Initialise GSM Module */
+    util::printInfo("GSM Starting up...");
+    modules::gsm = new GSM(GSM_TX, GSM_RTS, GSM_RX, GSM_CTS, GSM_RESET, GSM_TERM_ON);
+    modules::gsm->configureServerConnection(serverUrl);    // Configure server connection
+    if (modules::gsm->httpPost("/reg","id:"+deviceId) == "Done") //register with server
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
     {
         util::printInfo("Restarted after crash by watchdog!");
     }
+<<<<<<< HEAD
     
     /* Init LCD Screen and Buttons */
     modules::ui = new UI(LCD_SDA, LCD_SCL, LCD_RST, PB1, PB2, PB3);
     modules::ui->writeText("Project Lono Starting Up...");
     util::printInfo("LCD Screen Initialised");
+=======
+    else
+    {
+        util::printError("Could not register with server.");
+    }
+    string r = modules::gsm->httpGet("/time"); //get time from server
+    util::printDebug(r);
+    if (r.length() == 19)
+    {
+        util::setTime(r.substr(0,10),r.substr(11,8));
+        util::printInfo("Successfully retrieved time from server");
+    }
+    else
+    {
+        util::printError("Could not retrieve time from server");
+    }
+    ///probably will later be done in wireless module?
+    util::printInfo("GSM Module initialised");
+   
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
     
     /* Initialise SD Card */
     modules::sdCard = new SDCard(SD_MOSI, SD_MISO, SD_CLK, SD_CS);
@@ -115,10 +161,16 @@ int main() {
     modules::pressureSensor->calibrate(c);
     modules::pressureSensor->setTiming(10000, 10, 100);
     modules::pressureSensor->start();
+<<<<<<< HEAD
     
     /* Start Battery Level timer */
     modules::battery->startTimer(60000);
     
     /* And goodbye */
     Thread::wait(osWaitForever);
+=======
+    
+    /* Start Battery Level timer */
+    modules::battery->startTimer(60000);
+>>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 }

@@ -9,11 +9,21 @@ namespace util
     {
         return atoi(s.c_str());
     }
+    
+    uint16_t ToUint(std::string s)
+    {
+        return atoi(s.c_str());
+    }
+    
+    float ToFloat(std::string s)
+    {
+        return atof(s.c_str());
+    }
 
     void printInfo(string s)
-    {   
+    {           
         string str = "Info: "+s;
-        modules::sdCard->writeToLog(str);
+        modules::sdCard->writeToLog(str);        
         modules::pc->print(str);
     }
 
@@ -21,7 +31,7 @@ namespace util
     {        
         #ifdef DEBUG
             if (modules::pc->getDebug())
-            {
+            {                
                 string str = "Debug: "+s;
                 modules::sdCard->writeToLog(str);
                 modules::pc->print(str);

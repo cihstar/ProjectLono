@@ -28,4 +28,14 @@
 #define P_SENSE_OUT p15
 #define P_SENSE_SLEEP p30
 
+#define LCD_SDA p9
+#define LCD_SCL p10
+#define LCD_RST p11
+
+#define PB1 p25
+#define PB2 p24
+#define PB3 p23
+
+#define BATTERY_LEVEL p16
+
 #endif

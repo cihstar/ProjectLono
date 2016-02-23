@@ -4,6 +4,7 @@
 #include "mbed.h"
 #include "rtos.h"
 #include <string>
+#include <memory>
 
 #define FWS_BUFFER_LENGTH 512
 
@@ -21,6 +22,8 @@ class GSMMessage {
         void setMessage(string m, int i);
         void addMessage(string m);
 };
+
+typedef std::unique_ptr<GSMMessage> ptr_GSM_msg;
 
 class FourWireSerial {
    public:

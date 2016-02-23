@@ -4,19 +4,24 @@
 #include "mbed.h"
 #include "rtos.h"
 
-#include "GSM.h"
 #include "PCSerial.h"
-#include "Flasher.h"
 #include "SDCard.h"
 #include "PressureSensor.h"
+#include "ui.h"
+#include "BatteryLevel.h"
+#include "GSM.h"
+#include "XBEE.h"
 
+#include "Wireless.h"
 
 namespace modules
 {
-    extern PCSerial* pc;
-    extern GSM* gsm;
-    extern Flasher* flasher[4];  
+    extern PCSerial* pc;        
     extern SDCard* sdCard;  
     extern PressureSensor* pressureSensor;
+    extern UI* ui;
+    extern BatteryLevel* battery;
+    extern GSM* gsm;
+    extern XBEE* xbee;
 }
 #endif

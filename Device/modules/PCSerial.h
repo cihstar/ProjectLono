@@ -6,9 +6,11 @@
 #include "util.h"
 #include <string>
 
+#include <vector>
+
 class PCMessage{
   public:
-    PCMessage(string t, string i, string i1="", string i2="");
+    PCMessage(string t);
     PCMessage();
     ~PCMessage();
    
@@ -17,10 +19,13 @@ class PCMessage{
     
     void setInstruction(int x, string t);
     string getInstruction(int x);
+    void addInstruction(string i);
+    void clearInstruction();
+    int getLength();
     
     private:      
         string type;
-        string instruction[3];
+        std::vector<string> instruction;
 };
 
 class PCSerial{
@@ -40,7 +45,7 @@ class PCSerial{
         void rxByte();
         void addToBuffer(char c);
         bool echo;
-        char buffer[16];
+        char buffer[128];
         uint8_t count;
         uint8_t insCount;
         bool typeDone;

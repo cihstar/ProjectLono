@@ -1,7 +1,7 @@
 #include "PCSerial.h"
 
 PCSerial::PCSerial(PinName tx, PinName rx, uint8_t size) : ser(tx,rx), echo(true), 
-rxThread(&PCSerial::threadStarter, this, osPriorityNormal,1024), newm(), enableInput(false)
+rxThread(&PCSerial::threadStarter, this, osPriorityNormal,2048), newm(), enableInput(false)
 {
     ser.attach(this,&PCSerial::rxByte);
     count = 0;
@@ -39,6 +39,22 @@ void PCSerial::rxByte()
     if (!enableInput) return;
     char c = ser.getc();
     if (echo) ser.printf("%c",c); 
+    if(gsmMode)
+    {
+        if(c=='\r')
+        {
+            addToBuffer('\0');
+            count = 0;            
+            newm.clearInstruction();            
+            newm.setMessageType(util::ToString(buffer));
+            messageQueue.put(&newm);  
+        }
+        else
+        {
+            addToBuffer(c);
+        }
+        return;
+    }
     if ( c == 8 || c == 127)
     {
         //backspace
@@ -55,6 +71,7 @@ void PCSerial::rxByte()
             count = 0;
             typeDone = true;
             newm.setMessageType(util::ToString(buffer));
+            newm.clearInstruction();            
         }
         else if ( c == '\r' )
         {
@@ -62,10 +79,8 @@ void PCSerial::rxByte()
             addToBuffer('\0');
             count = 0;
             insCount = 0;
+            newm.clearInstruction();
             newm.setMessageType(util::ToString(buffer));
-            newm.setInstruction(0,"");
-            newm.setInstruction(1,"");
-            newm.setInstruction(2,"");
             messageQueue.put(&newm);  
         }
         else if ( c >= 33 && c <= 126)
@@ -78,13 +93,9 @@ void PCSerial::rxByte()
         if ( c == '\r')
         {
             ser.printf("\n");
-            addToBuffer('\0');
-            newm.setInstruction(insCount, util::ToString(buffer));
+            addToBuffer('\0');                      
+            newm.addInstruction(util::ToString(buffer));
             insCount++;
-            for (int i = insCount; i < 3; i++)
-            {
-                newm.setInstruction(i,"");
-            }
             count = 0;
             insCount = 0;
             typeDone = false;
@@ -94,7 +105,7 @@ void PCSerial::rxByte()
         {
             addToBuffer('\0');
             count = 0;
-            newm.setInstruction(insCount,util::ToString(buffer));
+            newm.addInstruction(util::ToString(buffer));
             insCount++;
         }
         else if ( c >= 33 && c <= 126)
@@ -140,20 +151,14 @@ void PCSerial::setEnableInput(bool b)
     enableInput = b;
 }
 
-PCMessage::PCMessage(string t, string i, string i1, string i2)
-{
-    instruction[0] = i;
-    instruction[1] = i1;
-    instruction[2] = i2;
+PCMessage::PCMessage(string t)
+{    
     type = t;
 }
 
 PCMessage::PCMessage()
-{
+{    
     type = "";
-    instruction[0] = "";
-    instruction[1] = "";
-    instruction[2] = "";
 }
 PCMessage::~PCMessage(){}
 
@@ -172,7 +177,22 @@ void PCMessage::setInstruction(int x, string i)
     instruction[x] = i;
 }
 
+void PCMessage::addInstruction(string i)
+{
+    instruction.push_back(i);
+}
+
 string PCMessage::getInstruction(int x)
 {
     return instruction[x];
+}
+
+void PCMessage::clearInstruction()
+{
+    instruction.clear();
+}
+
+int PCMessage::getLength()
+{
+    return instruction.size();
 }

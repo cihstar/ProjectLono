@@ -4,6 +4,8 @@
 #include "mbed.h"
 #include "rtos.h"
 
+#include "Dimensions.h"
+
 //Acceleration due to gravity in m.s^-2
 #define G 9.81
 
@@ -12,13 +14,14 @@ class PressureSensor
     public:
         PressureSensor(PinName out, PinName sleep);
         ~PressureSensor();
-        void start(int tTx, int tSamp, int reads);
+        void start();
         void stopTimer();
         uint16_t read();
         void sleep();
         void wakeup();
-        void setDimensions(float rTube, float rFunnel, float rOutTube);
-        void calibrate(uint16_t emptyAdc, uint16_t fullAdc, float fullHeight);
+        void setDimensions(Dimensions d);
+        void calibrate(Calibrate c);
+        void setTiming(int tTx, int tSamp, int reads);
         
     private:
         AnalogIn sensor;

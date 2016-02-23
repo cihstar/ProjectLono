@@ -70,7 +70,6 @@ void GSM::txTask()
 {
     while(1)
     {
-        //util::printDebug("hello from tx task, waiting for reply = "+util::ToString(waitingForReply));
         Thread::wait(5);
         //send messages from queue
         if (!waitingForReply)
@@ -86,15 +85,13 @@ void GSM::txTask()
     }
 }
 
-void GSM::configureServerConnection(string url)
-{
-    util::printDebug("1");
-    waitForLongOperationToFinish();
-    util::printDebug("2");
+bool GSM::configureServerConnection(string url)
+{    
+    waitForLongOperationToFinish();    
     longOperationInProg = true;
-    GSMMessage* m;
+    ptr_GSM_msg m;
     m = sendCommand("AT^SICS=0,conType,GPSR0");
-    if (m->getMessage(0) == "OK")
+   if (m->getMessage(0) == "OK")
     {
         m = sendCommand("AT^SICS=0,apn,EEM2M");
         if (m->getMessage(0) == "OK")
@@ -106,17 +103,16 @@ void GSM::configureServerConnection(string url)
                 if (m->getMessage(0) == "OK")
                 {
                     sendCommand("AT^SISS=0,address,"+url+":80");
-                    util::printInfo("Server connection successfully configured to "+url);
                     connectedUrl = url;
                     serverConfigured = true;
                     longOperationInProg = false;
-                    return;
+                    return true;                    
                 }
             }
         }
     }
-    util::printError("Unable to configure server connection for URL = "+url);
     longOperationInProg = false;
+    return false;
 }
 
 bool GSM::connectToServer()
@@ -153,9 +149,10 @@ string GSM::httpPost(string url, string data)
     if (!connectedToServer)
     {
         util::printError("HTTP Operation failed. Not connected to server");
+        longOperationInProg = false;
         return "ERROR";
     }
-    GSMMessage *m;
+    ptr_GSM_msg m;
     m = sendCommand("AT^HTTPCMD=0,POST,"+connectedUrl+url+","+util::ToString(data.length())+",'text/plain'");
     if (m->getMessage() == "CONNECT")
     {
@@ -180,9 +177,10 @@ string GSM::httpGet(string url)
     if (!connectedToServer)
     {
         util::printError("HTTP Operation failed. Not connected to server");
+        longOperationInProg = false;
         return "ERROR";
     }
-    GSMMessage *m;
+    ptr_GSM_msg m;
     m = sendCommand("AT^HTTPCMD=0,GET,"+connectedUrl+url,3);
     if (m->getMessage(0) == "CONNECT")
     {
@@ -207,18 +205,21 @@ void GSM::waitForLongOperationToFinish()
 {
     while(longOperationInProg)
     {
-        Thread::wait(10);
+       Thread::wait(1);
     }
 }
 
-GSMMessage* GSM::sendCommand(string c, int numResults)
+ptr_GSM_msg GSM::sendCommand(string c, int numResults)
 {
+    
+    ptr_GSM_msg returnMessage(new GSMMessage);
+   // returnMessage->addMessage("TIMEOUT");
+   // return returnMessage;
+    
     //Send the command to GSM, with added CR
     
     ///////////********* REMOVE THE /n when actually using!!!!!! //////////
-    GSMMessage toSend(c,1);
-    sendQueue.put(&toSend);
-    
+ 
     //Wait for reply.
     mRespWaiting.lock();
     int me = respWaiting;
@@ -227,7 +228,10 @@ GSMMessage* GSM::sendCommand(string c, int numResults)
     mRespWaiting.unlock();
     int rxed = 0;
     
-    GSMMessage* returnMessage = new GSMMessage();
+    GSMMessage toSend(c,1);
+    sendQueue.put(&toSend);
+    
+    
     timeout = false;
     timeoutTimer.start(TIMEOUT*1000);
            
@@ -240,8 +244,9 @@ GSMMessage* GSM::sendCommand(string c, int numResults)
                 returnMessage->addMessage("TIMEOUT");
             }
             mRespWaiting.lock();
-            respWaiting-= (numResults - rxed);
+            respWaiting -= (numResults - rxed);
             mRespWaiting.unlock();
+
             break;
         }
         mRespWaiting.lock();
@@ -272,12 +277,17 @@ GSMMessage* GSM::sendCommand(string c, int numResults)
     }
     waitingForReply = false;
     mRespWaiting.unlock();
-        
-    return returnMessage;
     
+    return returnMessage;
 }
 
 void GSM::setPrint(bool p)
 {
     print = p;
+}
+
+void GSM::sendCommandNoReply(string cmd)
+{
+    GSMMessage toSend(cmd,1);
+    sendQueue.put(&toSend);
 }

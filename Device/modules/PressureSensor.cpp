@@ -6,7 +6,7 @@
 PressureSensor::PressureSensor(PinName out, PinName sleep) :
 sensor(out), sleepPin(sleep), timer(timerStarter, osTimerPeriodic, this), samples(0),
 totalRain(0), emptying(false), lasth(0), sampsPerTx(0), readsPerSamp(0), tubeArea(0), 
-outTubeArea(0), funnelRatio(0), startEmptyHeight(0), endEmptyHeight(0), calibration(0),
+outTubeArea(0), funnelRatio(0), startEmptyHeight(0), endEmptyHeight(0), calibration(0.0f),
 offset(0)
 {
 }
@@ -19,7 +19,14 @@ void PressureSensor::timerStarter(void const* p)
     instance->timerTask();
 }
 
-void PressureSensor::start(int tTx, int tSamp, int reads)
+void PressureSensor::setTiming(int tTx, int tSamp, int reads)
+{
+    sampsPerTx = tTx / tSamp;
+    sampInterval = tSamp;
+    readsPerSamp = reads;
+}
+
+void PressureSensor::start()
 {
     if (tubeArea == 0 || funnelRatio == 0)
     {
@@ -31,16 +38,14 @@ void PressureSensor::start(int tTx, int tSamp, int reads)
         util::printError("Cannot start pressure readings. Sensor not calibrated");
         return;
     }
-    if (tTx == 0 || tSamp == 0 || reads == 0)
+    if (sampsPerTx == 0 || sampInterval == 0 || readsPerSamp == 0)
     {
         util::printError("Cannot start pressure readings. Timing not valid");
         return;
     }
-    sampsPerTx = tTx / tSamp;
-    sampInterval = tSamp;
-    readsPerSamp = reads;
     lasth = toHeight(read());
-    timer.start(tSamp);
+    samples = 0;
+    timer.start(sampInterval);
     util::printInfo("Pressure Sensor Readings Started");
     util::printInfo("Tube Area: " + util::ToString(tubeArea) + " m^2");
     util::printInfo("Out Tube Area: " + util::ToString(outTubeArea) + " m^2");
@@ -51,6 +56,7 @@ void PressureSensor::start(int tTx, int tSamp, int reads)
 
 void PressureSensor::stopTimer()
 {
+    util::printInfo("Pressure Sensor Timer Stopped");
     timer.stop();
 }
 
@@ -59,17 +65,21 @@ float PressureSensor::area(float r)
     return M_PI * pow(r,2);
 }
 
-void PressureSensor::setDimensions(float rTube, float rFunnel, float rOutTube)
+void PressureSensor::setDimensions(Dimensions d)
 {
-    tubeArea = area(rTube);
-    outTubeArea = area(rOutTube);
-    funnelRatio = 1000 / (pow(rFunnel,2) / pow(rTube,2));
+    outTubeArea = area(d.outTubeRadius);
+    float outTubeWallArea = area(d.outTubeWall) - outTubeArea;
+    tubeArea = area(d.tubeRadius) - outTubeWallArea - area(d.pressureSensorTubeRadius);
+    funnelRatio = 1000 / (pow(d.funnelRadius,2) / pow(d.tubeRadius,2));
 }
 
-void PressureSensor::calibrate(uint16_t emptyAdc, uint16_t fullAdc, float fullHeight)
+void PressureSensor::calibrate(Calibrate c)
 {
-    calibration = fullHeight / (fullAdc - emptyAdc);
-    offset = emptyAdc;
+    if (c.fullAdc != 0)
+    {
+        calibration = c.fullHeight / (c.fullAdc - c.emptyAdc);
+        offset = c.emptyAdc;   
+    }
 }
 
 uint16_t PressureSensor::read()
@@ -104,11 +114,13 @@ void PressureSensor::timerTask()
     wakeup();
     float h = toHeight(read());   
     
+    //util::printDebug("Reading: " + util::ToString(h));
+    
     if (emptying)
     {
         if (h <= endEmptyHeight)
         {
-            util::printInfo("Tube Stopped Emptying");
+       //     util::printInfo("Tube Stopped Emptying");
             emptying = false;
         }
     }
@@ -116,7 +128,7 @@ void PressureSensor::timerTask()
     {
         if (h >= startEmptyHeight)
         {
-            util::printInfo("Tube Emptying");
+        //    util::printInfo("Tube Emptying");
             emptying = true;
         }
     }
@@ -134,10 +146,9 @@ void PressureSensor::timerTask()
     
     if (samples == sampsPerTx)
     {
-        float reading = totalRain * funnelRatio; 
-        util::printInfo("Rainfall reading to send. " + util::ToString(reading) +" mm of rain since last send");
-        modules::sdCard->writeReading(util::ToString(reading));   
-        modules::gsm->httpGet("/time");     
+        float reading = totalRain * funnelRatio;         
+        modules::sdCard->writeReading(util::ToString(reading));
+        Wireless::txReading(reading);   
         samples = 0;
         totalRain = 0;
     }

@@ -6,19 +6,22 @@
 #include "mbed.h"
 #include <string>
 
+#include <memory>
+
 #define respLength 8
-#define TIMEOUT 15
+#define TIMEOUT 1
 
 class GSM {
   public:
     GSM(PinName tx, PinName cts, PinName rx, PinName rts, PinName reset, PinName termOn);
     ~GSM();
-    GSMMessage* sendCommand(string c, int numResults=1);
+    ptr_GSM_msg sendCommand(string c, int numResults=1);
     void setPrint(bool p);    
     string httpPost(string url, string data);
     string httpGet(string url);
-    void configureServerConnection(string url);
+    bool configureServerConnection(string url);
     void timeoutFunction();
+    void sendCommandNoReply(string cmd);
     
   private:
     FourWireSerial serial;

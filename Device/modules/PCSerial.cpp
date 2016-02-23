@@ -44,12 +44,9 @@ void PCSerial::rxByte()
         if(c=='\r')
         {
             addToBuffer('\0');
-<<<<<<< HEAD
             count = 0;            
             newm.clearInstruction();            
-=======
             count = 0;
->>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
             newm.setMessageType(util::ToString(buffer));
             messageQueue.put(&newm);  
         }
@@ -85,13 +82,6 @@ void PCSerial::rxByte()
             insCount = 0;
             newm.clearInstruction();
             newm.setMessageType(util::ToString(buffer));
-<<<<<<< HEAD
-=======
-            for (int i = 0; i < M; i++)
-            {
-                newm.setInstruction(i,"");
-            }
->>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
             messageQueue.put(&newm);  
         }
         else if ( c >= 33 && c <= 126)
@@ -107,13 +97,6 @@ void PCSerial::rxByte()
             addToBuffer('\0');                      
             newm.addInstruction(util::ToString(buffer));
             insCount++;
-<<<<<<< HEAD
-=======
-            for (int i = insCount; i < M; i++)
-            {
-                newm.setInstruction(i,"");
-            }
->>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
             count = 0;
             insCount = 0;
             typeDone = false;

@@ -75,16 +75,11 @@ void PressureSensor::setDimensions(Dimensions d)
 
 void PressureSensor::calibrate(Calibrate c)
 {
-<<<<<<< HEAD
     if (c.fullAdc != 0)
     {
         calibration = c.fullHeight / (c.fullAdc - c.emptyAdc);
         offset = c.emptyAdc;   
     }
-=======
-    calibration = c.fullHeight / (c.fullAdc - c.emptyAdc);
-    offset = c.emptyAdc;
->>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 }
 
 uint16_t PressureSensor::read()

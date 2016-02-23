@@ -2,29 +2,21 @@
 #include "modules.h"
 #include "util.h"
 #include "Dimensions.h"
-<<<<<<< HEAD
 
 #include <vector>
 #include <sstream>
-=======
->>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
 
 void PCSerial::rxTask()
 {
     rxThread.signal_wait(1);    
     PCMessage* m;
     string mType;
-<<<<<<< HEAD
     std::vector<string> mIns;
     string full;
-=======
-    string mIns[M];
->>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
     while(true)
     {             
         m = modules::pc->getNextMessage();
         mType = m->getMessageType();
-<<<<<<< HEAD
         full = mType;
         mIns.clear();
         for (int i = 0; i < m->getLength(); i++)
@@ -33,16 +25,7 @@ void PCSerial::rxTask()
             mType+= mIns[i];         
         }    
                    
-
        modules::sdCard->writeToLog("PC: "+full);
-=======
-        for (int i = 0; i < M; i++)
-        {
-            mIns[i] = m->getInstruction(i);
-        }
-
-        modules::sdCard->writeToLog("PC: "+mType+" "+mIns[0]+" "+mIns[1]+" "+mIns[2]);
->>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
          
         if (gsmMode)
         {
@@ -116,14 +99,8 @@ void PCSerial::rxTask()
             }
             else if (mType == "setDimensions")
             {
-<<<<<<< HEAD
-                modules::pressureSensor->stopTimer();                             
-                Dimensions d = {util::ToFloat(mIns[0]), util::ToFloat(mIns[1]), util::ToFloat(mIns[2]), util::ToFloat(mIns[3]), util::ToFloat(mIns[4])};                
-                
-=======
                 modules::pressureSensor->stopTimer();
                 Dimensions d = {util::ToFloat(mIns[0]), util::ToFloat(mIns[1]), util::ToFloat(mIns[2]), util::ToFloat(mIns[3]), util::ToFloat(mIns[4])};
->>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
                 modules::sdCard->writeDimensions(d);
                 modules::pressureSensor->setDimensions(d);  
                 modules::pressureSensor->start(); 
@@ -136,7 +113,6 @@ void PCSerial::rxTask()
                 modules::pressureSensor->calibrate(c);
                 modules::pressureSensor->start();
             }
-<<<<<<< HEAD
             else if (mType == "setWirelessMode")
             {
                 if (mIns[0] == "GSM")
@@ -156,8 +132,6 @@ void PCSerial::rxTask()
                     util::printError("Please select GSM, XBEE or None");
                 }
             }
-=======
->>>>>>> fa0e297cc9ac7e3fc27fd0274cae3e2de0aea1e3
             else
             {
                 util::printError("Unknown Command '"+mType+"'");

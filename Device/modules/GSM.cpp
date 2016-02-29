@@ -1,19 +1,56 @@
 #include "GSM.h"
 #include "util.h"
 
-GSM::GSM(PinName tx, PinName cts, PinName rx, PinName rts, PinName termOn, PinName reset) : serial(rx,cts,tx,rts),
-rxThread(&GSM::threadStarter, this, osPriorityNormal,1024), print(false),
+GSM::GSM(PinName tx, PinName cts, PinName rx, PinName rts, PinName ptermOn, PinName preset) : serial(rx,cts,tx,rts),
+rxThread(&GSM::threadStarter, this, osPriorityNormal,2048), print(false),
 txThread(&GSM::threadStarterTx, this, osPriorityNormal,1024),
-termOn(termOn), reset(reset), respWaiting(0), respFront(0),connectedToServer(false),serverConfigured(false),
+termOn(ptermOn), reset(preset), respWaiting(0), respFront(0),connectedToServer(false),serverConfigured(false),
 timeoutTimer(timerStarter, osTimerPeriodic, this), timeout(false), waitingForReply(false), replyFor(-1),
-longOperationInProg(false)
+longOperationInProg(false), powerOn(false), messagesAvailable(0)
 {
-    //Wait a few seconds for it to boot up
-    Thread::wait(2000);    
+    serial.setRxThread(&rxThread, &messagesAvailable);    
 }
 
 GSM::~GSM()
 {}
+
+void GSM::init()
+{
+    int count = 0;
+    while (!powerOn)
+    {
+        if (count == 1)
+        {
+            util::printDebug("May have failed to power on GSM module. Continuing...");
+            break;
+        }
+        DigitalOut resetme(p29);
+        DigitalOut me(p26);
+        serial.setBaud(115200);    
+        resetme = 1;    
+        me = 0;    
+        wait(0.5);    
+        me = 1;
+        wait(1.2);    
+        me = 0;
+        wait(2);
+        count++;
+    }
+    
+   // ptr_GSM_msg m = sendCommand("AT+IPR=9600",2); //set baud rate to 9600 to slow it down
+   //for (int i = 0; i < 2; i++)
+    //{
+      //  util::printDebug("Reply from baud: " + m->getMessage(i));
+    //}
+    
+    //m = sendCommand("ATE0",2); //disable echo
+    //for (int i = 0; i < 2; i++)
+    //{
+      //  util::printDebug("Reply from disable echo: " + m->getMessage(i));
+   // }
+    
+    serial.clearBuffer();            
+}
 
 void GSM::threadStarter(void const *p)
 {
@@ -35,50 +72,102 @@ void GSM::timerStarter(void const* p)
 
 void GSM::rxTask()
 {
-    //Respond to messages from the GSM Module
-    GSMMessage* m;
-    string message;
-    
+    bool messageComplete = false;
+    char lastC = ' ';
+    bool dontPrint = false;
     while(1)
     {
-        m = serial.getNextMessage();
-        message = m->getMessage(0);
-        if (print)
+        Thread::signal_wait(FWS_MESSAGE_READY);  
+        int j = messagesAvailable;
+        for (int i = 0; i < j; i++)
         {
-            util::print("GSM: " + message);
-        }        
-                
-        
-        if (waitingForReply)
-        {
-            mRespWaiting.lock();          
-            sendCommandReplyQueue.put(m);
-            replyFor++;
-            replyFor %= respLength;
-            respWaiting--;            
-            mRespWaiting.unlock();
-        }
-        else
-        {
-            //unsolicited messages handled here.
-            util::printInfo(message);
-        }
+            messagesAvailable--;
+            string message;
+            
+            messageComplete = false;
+            
+            while(!messageComplete)
+            {
+                char c = serial.getChar();
+                if (c == '\n' && lastC == '\r')
+                {
+                    messageComplete = true;
+                }
+                else
+                {
+                    if (c == '\n')
+                    {
+                        message.append(1,'<');
+                        message.append(1,'C');
+                        message.append(1,'R');
+                        message.append(1,'>');
+                    }
+                    if (c == '\n')
+                    {
+                        message.append(1,'<');
+                        message.append(1,'L');
+                        message.append(1,'F');
+                        message.append(1,'>');
+                    }
+                    message.append(1,c);
+                }
+                lastC = c;
+            }
+            
+            if (message != "" && message != "\r" && message != "\n" && message != "\r\n")
+            {               
+                if (print)
+                {
+                    util::print("GSM: " + message);
+                }                        
+            
+                if (message.find("^SYSSTART") != string::npos)
+                {
+                    util::printInfo("GSM Powered On");
+                    powerOn = true;     
+                    dontPrint = true;              
+                }    
+            
+                if (waitingForReply)
+                {
+                    GSMMessage m(message,1);
+                    mRespWaiting.lock();          
+                    sendCommandReplyQueue.put(&m);
+                    replyFor++;
+                    replyFor %= respLength;
+                    respWaiting--;            
+                    mRespWaiting.unlock();                    
+                }
+                else
+                {
+                    if (!print && !dontPrint)
+                    {
+                        dontPrint = false;
+                        util::print("GSM Message: " + message);
+                    }
+                }
+            }
+        }   
     }
+}
+
+bool GSM::isOn()
+{
+    return powerOn;
 }
 
 void GSM::txTask()
 {
     while(1)
-    {
-        Thread::wait(5);
+    {               
+        osEvent e = sendQueue.get();
         //send messages from queue
         if (!waitingForReply)
-        {            
-            osEvent e = sendQueue.get();
+        {                        
             if (e.status == osEventMessage)
             {
                 GSMMessage* m = (GSMMessage*) e.value.p;
-                serial.sendData(m->getMessage() + "\r\n");
+                serial.sendData(m->getMessage() + "\r");                               
                 waitingForReply = true;
             }
         }
@@ -89,24 +178,27 @@ bool GSM::configureServerConnection(string url)
 {    
     waitForLongOperationToFinish();    
     longOperationInProg = true;
-    ptr_GSM_msg m;
-    m = sendCommand("AT^SICS=0,conType,GPSR0");
-   if (m->getMessage(0) == "OK")
-    {
-        m = sendCommand("AT^SICS=0,apn,EEM2M");
-        if (m->getMessage(0) == "OK")
-        { 
-            m = sendCommand("AT^SISS=0,srvType,http");
-            if (m->getMessage(0) == "OK")
-            {
-                m = sendCommand("AT^SISS=0,conId,0");
-                if (m->getMessage(0) == "OK")
-                {
-                    sendCommand("AT^SISS=0,address,"+url+":80");
-                    connectedUrl = url;
-                    serverConfigured = true;
-                    longOperationInProg = false;
-                    return true;                    
+    ptr_GSM_msg m;    
+    m = sendCommand("AT^SICS=0,conType,GPRS0",1);    
+    if (m->getMessage(0).find("OK") != string::npos)
+    {        
+        m = sendCommand("AT^SICS=0,apn,EEM2M",1);               
+        if (m->getMessage(0).find("OK") != string::npos)
+        {             
+            m = sendCommand("AT^SISS=0,srvType,http",1);                       
+            if (m->getMessage(0).find("OK") != string::npos)
+            {                 
+                m = sendCommand("AT^SISS=0,conId,0",1);                                
+                if (m->getMessage(0).find("OK") != string::npos)
+                {                                        
+                    m = sendCommand("AT^SISS=0,address,"+url+":80",1);                                     
+                    if (m->getMessage(0).find("OK") != string::npos)
+                    {
+                        connectedUrl = url;
+                        serverConfigured = true;
+                        longOperationInProg = false;
+                        return true;
+                    }                    
                 }
             }
         }
@@ -119,12 +211,8 @@ bool GSM::connectToServer()
 {
     if (serverConfigured)
     {
-        connectedToServer = (((sendCommand("AT^SISO=0"))->getMessage(0)) == "OK");
+        connectedToServer = (((sendCommand("AT^SISO=0"))->getMessage(0)).find("OK") != string::npos);
         return connectedToServer;
-    }
-    else
-    {
-        return false;
     }
 }
 
@@ -132,25 +220,19 @@ bool GSM::disconnectFromServer()
 {
     if (connectedToServer && serverConfigured)
     {
-    connectedToServer = !(((sendCommand("AT^SISC=0"))->getMessage(0)) == "OK");
-    return connectedToServer;
-    }
-    else
-    {
-        return false;
+        connectedToServer = !(((sendCommand("AT^SISC=0"))->getMessage(0)).find("OK") != string::npos);
+        return connectedToServer;
     }
 }
 
 string GSM::httpPost(string url, string data)
 {
     waitForLongOperationToFinish();
-    longOperationInProg = true;
-    connectToServer();
-    if (!connectedToServer)
+    longOperationInProg = true;    
+    if (!connectToServer())
     {
-        util::printError("HTTP Operation failed. Not connected to server");
-        longOperationInProg = false;
-        return "ERROR";
+        longOperationInProg = false;        
+        return "NOT_CONNECTED_TO_SERVER";
     }
     ptr_GSM_msg m;
     m = sendCommand("AT^HTTPCMD=0,POST,"+connectedUrl+url+","+util::ToString(data.length())+",'text/plain'");
@@ -175,8 +257,7 @@ string GSM::httpGet(string url)
     longOperationInProg = true;
     connectToServer();
     if (!connectedToServer)
-    {
-        util::printError("HTTP Operation failed. Not connected to server");
+    {        
         longOperationInProg = false;
         return "ERROR";
     }
@@ -211,15 +292,19 @@ void GSM::waitForLongOperationToFinish()
 
 ptr_GSM_msg GSM::sendCommand(string c, int numResults)
 {
+    ptr_GSM_msg returnMessage(new GSMMessage);   
     
-    ptr_GSM_msg returnMessage(new GSMMessage);
-   // returnMessage->addMessage("TIMEOUT");
-   // return returnMessage;
+    if (!powerOn)
+    {
+        returnMessage->addMessage("PowerOff");
+        return returnMessage;
+    }
     
-    //Send the command to GSM, with added CR
+  //  util::printInfo("message before making obj: " + c);
+    GSMMessage toSend(c,1);
+    sendQueue.put(&toSend);
+  //  util::printInfo("Message in send command: " + toSend.getMessage(0));
     
-    ///////////********* REMOVE THE /n when actually using!!!!!! //////////
- 
     //Wait for reply.
     mRespWaiting.lock();
     int me = respWaiting;
@@ -227,10 +312,6 @@ ptr_GSM_msg GSM::sendCommand(string c, int numResults)
     respWaiting+=numResults;
     mRespWaiting.unlock();
     int rxed = 0;
-    
-    GSMMessage toSend(c,1);
-    sendQueue.put(&toSend);
-    
     
     timeout = false;
     timeoutTimer.start(TIMEOUT*1000);
@@ -288,6 +369,8 @@ void GSM::setPrint(bool p)
 
 void GSM::sendCommandNoReply(string cmd)
 {
-    GSMMessage toSend(cmd,1);
-    sendQueue.put(&toSend);
+    if (powerOn)
+    {
+        serial.sendData(cmd+"\r");
+    }                       
 }

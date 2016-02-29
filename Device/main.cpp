@@ -48,7 +48,7 @@ GSM* modules::gsm;
 XBEE* modules::xbee;
 
 /*** Main Function - Initialise Everything! ***/
-int main() {
+int main() {         
     /* Watchdog Setup */
     RtosTimer watchdogTimer(timerTask, osTimerPeriodic);
     wdt.kick(10.0); //set to 10 seconds
@@ -81,11 +81,11 @@ int main() {
     modules::sdCard = new SDCard(SD_MOSI, SD_MISO, SD_CLK, SD_CS);
     util::printInfo("SD Card initialised");
     
-    /* Initialise Wireless Module */
-    Wireless::init();    
+    /* Initialise Wireless Module */  
+    Wireless::init();     
     modules::gsm = new GSM(GSM_TX, GSM_RTS, GSM_RX, GSM_CTS, GSM_RESET, GSM_TERM_ON);
-    modules::xbee = new XBEE();
-    Wireless::setConnectionMode(Wireless::NONE);    
+    modules::xbee = new XBEE();     
+    Wireless::setConnectionMode(Wireless::GSM);
     util::printInfo("Wirelesss Module initialised");                
        
     /* Init Battery level sensor */
@@ -115,9 +115,6 @@ int main() {
     modules::pressureSensor->calibrate(c);
     modules::pressureSensor->setTiming(10000, 10, 100);
     modules::pressureSensor->start();
-    
-    /* Start Battery Level timer */
-    modules::battery->startTimer(60000);
     
     /* And goodbye */
     Thread::wait(osWaitForever);    

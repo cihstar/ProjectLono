@@ -9,11 +9,11 @@
 #include <memory>
 
 #define respLength 8
-#define TIMEOUT 1
+#define TIMEOUT 20
 
 class GSM {
   public:
-    GSM(PinName tx, PinName cts, PinName rx, PinName rts, PinName reset, PinName termOn);
+    GSM(PinName tx, PinName cts, PinName rx, PinName rts, PinName preset, PinName ptermOn);
     ~GSM();
     ptr_GSM_msg sendCommand(string c, int numResults=1);
     void setPrint(bool p);    
@@ -22,6 +22,8 @@ class GSM {
     bool configureServerConnection(string url);
     void timeoutFunction();
     void sendCommandNoReply(string cmd);
+    void init();
+    bool isOn();
     
   private:
     FourWireSerial serial;
@@ -34,6 +36,7 @@ class GSM {
     Thread rxThread;
     Thread txThread;
     char buffer[1024];
+    bool powerOn;
     bool print;
     
     Queue<GSMMessage,respLength> sendQueue;
@@ -60,6 +63,7 @@ class GSM {
     bool longOperationInProg;
     void waitForLongOperationToFinish();
     
+    int messagesAvailable;
     
 };
 

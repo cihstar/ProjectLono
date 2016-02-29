@@ -57,6 +57,7 @@ class PCSerial{
         void rxTask();  
         PCMessage newm;    
         bool enableInput;
+        bool messageStarted;
 };
 
 #endif

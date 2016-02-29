@@ -10,7 +10,8 @@ rxThread(&PCSerial::threadStarter, this, osPriorityNormal,2048), newm(), enableI
     debug = true;
     bufferSize = size;
     gsmMode = false;
-    rxThread.signal_set(1);     
+    rxThread.signal_set(1);  
+    messageStarted = false;   
 }
 
 void PCSerial::threadStarter(void const *p) {
@@ -38,6 +39,11 @@ void PCSerial::rxByte()
 {
     if (!enableInput) return;
     char c = ser.getc();
+    if (!messageStarted)
+    {
+        messageStarted = true;
+        ser.printf("\r\n");
+    }
     if (echo) ser.printf("%c",c); 
     if(gsmMode)
     {
@@ -49,6 +55,7 @@ void PCSerial::rxByte()
             count = 0;
             newm.setMessageType(util::ToString(buffer));
             messageQueue.put(&newm);  
+            messageStarted = false;
         }
         else
         {
@@ -72,7 +79,7 @@ void PCSerial::rxByte()
             count = 0;
             typeDone = true;
             newm.setMessageType(util::ToString(buffer));
-            newm.clearInstruction();            
+            newm.clearInstruction();                 
         }
         else if ( c == '\r' )
         {
@@ -83,6 +90,7 @@ void PCSerial::rxByte()
             newm.clearInstruction();
             newm.setMessageType(util::ToString(buffer));
             messageQueue.put(&newm);  
+            messageStarted = false;
         }
         else if ( c >= 33 && c <= 126)
         {
@@ -101,13 +109,14 @@ void PCSerial::rxByte()
             insCount = 0;
             typeDone = false;
             messageQueue.put(&newm);
+            messageStarted = false;
         }
         else if ( c == ' ' )
         {
             addToBuffer('\0');
             count = 0;
             newm.addInstruction(util::ToString(buffer));
-            insCount++;
+            insCount++;            
         }
         else if ( c >= 33 && c <= 126)
         {
@@ -142,9 +151,8 @@ void PCSerial::setEcho(bool e)
 }
 
 void PCSerial::print(string s)
-{
-    //write to log.txt on sd card
-    ser.printf("%s\r\n",s.c_str());    
+{    
+    ser.printf("\r\n%s",s.c_str());    
 }
 
 void PCSerial::setEnableInput(bool b)

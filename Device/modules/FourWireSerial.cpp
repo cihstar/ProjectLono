@@ -1,59 +1,71 @@
 #include "mbed.h"
 #include "FourWireSerial.h"
 #include "rtos.h"
+#include "util.h"
 #include <string>
 
 FourWireSerial::FourWireSerial(PinName rx, PinName cts, PinName tx, PinName rts) :
-RTS(rts), CTS(cts), serial(tx,rx), newm(), bracketOpen(false)
+RTS(rts), CTS(cts), serial(tx,rx), newm(), bracketOpen(false), len(0), lastC(' '), setup(false),
+readIndex(0), writeIndex(0), LFCR(false)
 {
     serial.attach(this, &FourWireSerial::recieveByte);
+    setBaud(9600);
+    DigitalOut m(p21); 
+    m = 1;
+}
+
+void FourWireSerial::setRxThread(Thread *t, int* a)
+{
+    messagesAvailable = a;
+    rxThread = t;
+    setup = true;
 }
 
 FourWireSerial::~FourWireSerial()
 {
 }
 
-void FourWireSerial::recieveByte()
+char FourWireSerial::getChar()
 {
-    char c = serial.getc();    
-    if ((c == '\n' && lastC == '\r') | (c=='N' && lastC == 'R'))
-    {        
-        if (!messageStarted)
-        {
-            //Start of message
-            messageStarted = true;
-            len = 0;
-            newm.resetLength();
-        }
-        else
-        {
-            //end of message
-            messageStarted = false;
-            charBuffer[len-1] = '\0';
-            newm.setMessage(charBuffer, newm.getLength());
-            messageQueue.put(&newm);
-        }
+    if (readIndex == writeIndex)
+    {
+        util::printDebug("Read > Write, R: "+util::ToString(readIndex)+" W: "+util::ToString(writeIndex));
+        return 'E';
     }
-    else
-    {        
-        if (messageStarted)
-        {
-            //middle of message, add to buffer
-            if (len >= FWS_BUFFER_LENGTH-1)
-            {
-                RTS = 0;
-            }            
-            else 
-            {
-                charBuffer[len] = c;
-                len++;
-            }
-            RTS = 1;
-        }
+    char c = charBuffer[readIndex];
+    readIndex++;
+    readIndex %= FWS_BUFFER_LENGTH;
+    return c; 
+}
+
+void FourWireSerial::clearBuffer()
+{
+    for (int i = 0; i < FWS_BUFFER_LENGTH; i++)
+    {
+        charBuffer[i] = ' ';
     }
-    
-    // save this char
-    lastC = c;
+    len=0;
+    writeIndex = 0;
+    readIndex = 0;
+}
+
+void FourWireSerial::recieveByte()
+{    
+    if(setup)
+    {        
+        char c = serial.getc();     
+        
+        charBuffer[writeIndex] = c;
+        writeIndex++;   
+        writeIndex %= FWS_BUFFER_LENGTH;  
+               
+        if (lastC == '\r' && c == '\n')
+        {
+            rxThread->signal_set(FWS_MESSAGE_READY);     
+            (*messagesAvailable)++;                         
+        }        
+        lastC = c;        
+    }
 }
 
 void FourWireSerial::setBaud(int baud)
@@ -62,8 +74,7 @@ void FourWireSerial::setBaud(int baud)
 }
 
 void FourWireSerial::sendByte(char byte)
-{
-    while (CTS == 0); //wait for CTS is high to send
+{        
     serial.putc((char) byte);
 }
 

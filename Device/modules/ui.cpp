@@ -27,23 +27,16 @@ void UI::timerTask()
 bool UI::sendCommand(char byte, bool rs, bool rw)
 {
     Timeout = false;
-    timeout.start(100);
+    timeout.start(5000);
     char addr;
     char control;
     char send[2];
     
-    if (rw)
-    {
-        addr = 0x7D;
-    }
-    else
-    {
-        addr = 0x7C;
-    }
+    addr = 0x7C;
     
     if (rs)
     {
-        control = 0x80;
+        control = 0x00;
     }
     else
     {
@@ -63,21 +56,43 @@ bool UI::sendCommand(char byte, bool rs, bool rw)
 
 bool UI::waitOnBusy()
 {
-    char addr = 0x7D;
-    char control = 0x80;
+    char cmd[2];
+    char addr = 0x7C; //addr
+    cmd[0] = 0x00; //control
     
-    char r;
+    char r[2];
+    
+    r[0] = 'A';
     
     do
     {
-        lcd.write(addr, &control, 1);
-        lcd.read(addr, &r, 1);
+        int a = lcd.write(addr, cmd, 1);
+        if ( a != 0)
+        {
+            util::printDebug("write fail");
+            util::printDebug(util::ToString((uint8_t) a));
+            return false;
+        }
+        
+        int b = lcd.read(addr, r, 1);
+        if ( b != 0)
+        {
+            util::printDebug("read fail");
+            util::printDebug(util::ToString(b));
+            util::printDebug("Reply from busy: " + util::ToString((uint8_t) r[0]));
+            return false;
+        }
+        
         if (Timeout)
         {
             return false;
         }
+        if (r[0] == 0xFF)
+        {
+            util::printDebug("Reply from busy: " + util::ToString((uint8_t) r[0]));
+        }
     }
-     while( (r & 0x80) == 0);
+     while( !((r[0] & 0x80) == 0x80));
      
      return true;
 }
@@ -135,7 +150,7 @@ void UI::setEntryMode(bool p)
     }
     if (!sendCommand(cmd, 0, 0))
     {
-        util::printError("LCD Display off Failed");
+        util::printError("LCD Set entry mode Failed");
     }  
 }
 

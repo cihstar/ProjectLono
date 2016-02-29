@@ -6,7 +6,8 @@
 #include <string>
 #include <memory>
 
-#define FWS_BUFFER_LENGTH 512
+#define FWS_MESSAGE_READY 0x02
+#define FWS_BUFFER_LENGTH 1024
 
 class GSMMessage {
     private:
@@ -34,6 +35,10 @@ class FourWireSerial {
     void sendByte(char byte);       
     void setBaud(int baud);
     GSMMessage* getNextMessage();
+    string printBuffer();
+    void clearBuffer();
+    void setRxThread(Thread* t, int* a);
+    char getChar();
     
   private:
     DigitalIn CTS;
@@ -47,6 +52,14 @@ class FourWireSerial {
     bool messageStarted;
     GSMMessage newm;
     bool bracketOpen;
+    Thread* rxThread;
+    bool setup;
+    int* messagesAvailable;
+    
+    int readIndex;
+    int writeIndex;
+    
+    bool LFCR;
 };
 
 #endif

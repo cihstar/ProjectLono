@@ -22,7 +22,7 @@ void PCSerial::rxTask()
         for (int i = 0; i < m->getLength(); i++)
         {
             mIns.push_back(m->getInstruction(i));   
-            mType+= mIns[i];         
+            full+= " " + mIns[i];         
         }    
                    
        modules::sdCard->writeToLog("PC: "+full);
@@ -34,7 +34,7 @@ void PCSerial::rxTask()
                 util::printBreak();
                 util::print("Direct Mode OFF");
                 modules::gsm->setPrint(false);
-                gsmMode = false;    
+                gsmMode = false;
             }
             else
             {

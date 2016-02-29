@@ -13,8 +13,6 @@ void Wireless::init()
 
 void Wireless::setConnectionMode(Wireless::ConnectionType t)
 {
-    util::printDebug("input t: " + util::ToString(t));
-    util::printDebug("current mode: " + util::ToString(mode));
     if (t == mode)
     {
         //No change
@@ -31,9 +29,57 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
     }
     
     if (t == Wireless::GSM)
-    {
+    {        
+        util::printInfo("Configuring GSM module...");
+        int count = 0;
+        while (!modules::gsm->isOn())
+        {
+            count++;
+            if (count == 20)
+            {
+                util::printError("GSM modules appears to not be powered on");
+                return;
+            }         
+            Thread::wait(250);  
+        }
         //Init GSM Module.
-         util::printInfo("Configuring GSM module...");
+         
+        //Ensure Baud Rate is set to 9600
+        ptr_GSM_msg m;
+        m = modules::gsm->sendCommand("AT+IPR=9600",2);
+        if (m->getMessage(1).find("OK") != string::npos)
+        {
+            util::printInfo("Set GSM Baud rate to 9600");
+            // serial.setBaud(9600);
+        }
+        else
+        {
+            util::printError("Unable to set GSM Baud rate to 9600");
+        }
+        
+        //Disable echo on GSM module
+        m = modules::gsm->sendCommand("ATE",2);                    
+        if (m->getMessage(1).find("OK") != string::npos)
+        {
+            util::printInfo("Disabled UART GSM echo");                        
+        }
+        else
+        {
+            util::printError("Unable to disable GSM UART echo");
+        }
+        
+        //Enable error reporting
+        m = modules::gsm->sendCommand("AT+CMEE=2");
+        if (m->getMessage(0).find("OK") != string::npos)
+        {
+            util::printInfo("Enabled error reporting from GSM");                        
+        }
+        else
+        {
+            util::printError("Unable to enable error reporting from GSM");
+        }
+         
+         
         /* Device Info */
         string deviceId = "0";
         string serverUrl = "http://lono-rain.appspot.com";

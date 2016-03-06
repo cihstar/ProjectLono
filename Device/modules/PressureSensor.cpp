@@ -1,13 +1,14 @@
 #include "PressureSensor.h"
 #include "modules.h"
 #include "util.h"
+#include "Wireless.h"
 #include <math.h>
 
 PressureSensor::PressureSensor(PinName out, PinName sleep) :
-sensor(out), sleepPin(sleep), timer(&PressureSensor::timerStarter, this, osPriorityNormal,3000), samples(0),
+sensor(out), sleepPin(sleep), timer(&PressureSensor::timerStarter, this, osPriorityNormal,2048), samples(0),
 totalRain(0), emptying(false), lasth(0), sampsPerTx(0), readsPerSamp(0), tubeArea(0), 
 outTubeArea(0), funnelRatio(0), startEmptyHeight(0), endEmptyHeight(0), calibration(0.0f),
-offset(0), active(false), lastReading("None"), reading(0), timerStarted(false)
+offset(0), active(false), lastReading("None"), reading(0)
 {
 }
 
@@ -49,9 +50,7 @@ void PressureSensor::start()
         return;
     }
     lasth = toHeight(read());
-    samples = 0;
-    //timer.start(sampInterval);
-    timerStarted = true;
+    samples = 0;        
     active = true;
     util::printInfo("Pressure Sensor Readings Started");
     util::printInfo("Tube Area: " + util::ToString(tubeArea) + " m^2");
@@ -68,9 +67,7 @@ bool PressureSensor::getActive()
 
 void PressureSensor::stopTimer()
 {
-    util::printInfo("Pressure Sensor Timer Stopped");
-    //timer.stop();
-    timerStarted = false;
+    util::printInfo("Pressure Sensor Timer Stopped");    
     active = false;
 }
 
@@ -124,36 +121,34 @@ void PressureSensor::wakeup()
 
 
 void PressureSensor::timerTask()
-{
-    float h;
-    float waterOut;
-    string str;
+{   
+   float h;
+   float waterOut;
+   string str;
+   string time;
     
     while(1)
     {        
-        while(!timerStarted)
+        //printf("\r\nPressure Sensor Thread Used stack: %d\r\n", timer.used_stack());
+        while(!active)
         {            
             Thread::wait(100);
-        }
+        }        
             
         wakeup();
         h = toHeight(read());   
         
-        //util::printDebug("Reading: " + util::ToString(h));
-        
         if (emptying)
         {
             if (h <= endEmptyHeight)
-            {
-        //     util::printInfo("Tube Stopped Emptying");
+            {        
                 emptying = false;
             }
         }
         else
         {
             if (h >= startEmptyHeight)
-            {
-            //    util::printInfo("Tube Emptying");
+            {            
                 emptying = true;
             }
         }
@@ -170,19 +165,35 @@ void PressureSensor::timerTask()
         samples++;
         
         if (samples == sampsPerTx)
-        {
-            reading = totalRain * funnelRatio;              
-            str = util::ToString(reading);              
-            lastReading = str;                   
-            modules::sdCard->writeReading(str);              
-            Wireless::txReading(reading);                 
-            samples = 0;
-            totalRain = 0;              
+        {                        
+            reading = totalRain * funnelRatio;                          
+            str = util::ToString(reading);                          
+            lastReading = str;
+            
+            Wireless::Reading r = {reading, getTxInterval(), util::getTimeStamp()};
+            readingQueue.put(&r);
+            
+            samples = 0;              
+            totalRain = 0;                                    
         }
-        sleep();    
-    Thread::wait(sampInterval);
+        sleep();         
+        Thread::wait(sampInterval);
+        
+        /***********************************************
+        ADD TIMER TOO, to set signal for thread to go
+        ************************************************/
     }
 }
+
+Wireless::Reading* PressureSensor::getNextReading()
+{
+    osEvent e = readingQueue.get();
+    if (e.status == osEventMessage)
+    {
+        return (Wireless::Reading*)e.value.p;        
+    }   
+}
+
 
 string PressureSensor::getLastReading()
 {

@@ -282,12 +282,16 @@ void rt_systick (void) {
 
 /*--------------------------- rt_stk_check ----------------------------------*/
 __weak void rt_stk_check (void) {
+   // printf("Check\r\n");
     /* Check for stack overflow. */
+    //printf("STACK OVERFLOW CHECK");
     if (os_tsk.run->task_id == 0x01) {
+       // printf("Main thread\r\n");
         // TODO: For the main thread the check should be done against the main heap pointer
     } else {
         if ((os_tsk.run->tsk_stack < (U32)os_tsk.run->stack) ||
             (os_tsk.run->stack[0] != MAGIC_WORD)) {
+            printf("STACK OVERFLOW, ID: %d\r\n", os_tsk.run->task_id);
             os_error (OS_ERR_STK_OVF);
         }
     }

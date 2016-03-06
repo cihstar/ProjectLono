@@ -5,6 +5,7 @@
 #include "rtos.h"
 
 #include "Dimensions.h"
+#include "Wireless.h"
 
 #include <string>
 
@@ -12,7 +13,7 @@
 #define G 9.81
 
 class PressureSensor
-{
+{ 
     public:
         PressureSensor(PinName out, PinName sleep);
         ~PressureSensor();
@@ -27,14 +28,14 @@ class PressureSensor
         bool getActive();
         string getLastReading();
         int getTxInterval();
+        Wireless::Reading* getNextReading();        
         
     private:
         AnalogIn sensor;
         DigitalOut sleepPin; 
         Thread timer;
         void timerTask();    
-        static void timerStarter(void const *p);
-        bool timerStarted;
+        static void timerStarter(void const *p);        
         
         float toHeight( uint16_t adcVal);
         float calcTubeOut(float height);
@@ -44,6 +45,8 @@ class PressureSensor
         
         float reading;
         float area(float r);
+        
+        Queue<Wireless::Reading,12> readingQueue;        
         
         /* Reading variables */
         bool emptying;

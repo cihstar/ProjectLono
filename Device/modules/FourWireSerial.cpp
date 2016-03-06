@@ -86,16 +86,6 @@ void FourWireSerial::sendData(string data)
     }
 }
 
-GSMMessage* FourWireSerial::getNextMessage()
-{
-    osEvent e = messageQueue.get();
-    if (e.status == osEventMessage)
-    {
-        GSMMessage* m = (GSMMessage*) e.value.p;
-        return m;
-    }
-}
-
 GSMMessage::GSMMessage(string m, int l) : length(l)
 {
     message[0] = m;

@@ -12,6 +12,8 @@
 #include "modules.h"
 #include "Dimensions.h"
 
+SDFileSystem sd(p5, p6, p7, p8, "sd");
+
 class Watchdog {
 public:
 // Load timeout value in watchdog timer and enable
@@ -47,7 +49,8 @@ GSM* modules::gsm;
 XBEE* modules::xbee;
 
 /*** Main Function - Initialise Everything! ***/
-int main() {     
+int main() {  
+       
     /* Watchdog Setup */
     RtosTimer watchdogTimer(timerTask, osTimerPeriodic);
     wdt.kick(10.0); //set to 10 seconds
@@ -56,9 +59,7 @@ int main() {
     if ((LPC_WDT->WDMOD >> 2) & 1)
     {
         startedFromWatchdog = true;
-    } 
-    
-    /* SD Card */
+    }     
     
     /* Initialise PC Serial Link */
     modules::pc = new PCSerial(USB_SERIAL_TX, USB_SERIAL_RX, 128);
@@ -78,16 +79,16 @@ int main() {
     }
     
     /* Init LCD Screen and Buttons */
- //   modules::ui = new UI(LCD_SDA, LCD_SCL, LCD_RST, PB1, PB2, PB3);
-    //modules::ui->writeText("Project Lono", "Initialising...");   
+    modules::ui = new UI(LCD_SDA, LCD_SCL, LCD_RST, PB1, PB2, PB3);
+    modules::ui->writeText("Project Lono", "Initialising...");   
     util::printInfo("LCD Screen Initialised");    
     
     /* Initialise Wireless Module */  
     Wireless::init();     
     modules::gsm = new GSM(GSM_TX, GSM_RTS, GSM_RX, GSM_CTS, GSM_RESET, GSM_TERM_ON);
     modules::xbee = new XBEE();     
-    Wireless::setConnectionMode(Wireless::NONE);
-    util::printInfo("Wirelesss Module initialised");           
+    Wireless::setConnectionMode(Wireless::GSM);
+    util::printInfo("Wirelesss Module initialised");                   
        
     /* Init Battery level sensor */
     modules::battery = new BatteryLevel(BATTERY_LEVEL);
@@ -103,10 +104,10 @@ int main() {
     util::printDebug("Debug Mode Enabled");  
     util::printInfo("Type help for list of commands");  
     util::printBreak();
-    
-    util::printInfo(modules::sdCard->readLog());    
-    
+        
     /* Threads in various objects will now be running */
+    /* Set up readings */
+    
     modules::pc->setEnableInput(true);
     
     /* Start pressure sensor readings */    
@@ -118,10 +119,9 @@ int main() {
     util::printDebug(util::ToString(d.outTubeRadius));
     util::printDebug(util::ToString(d.outTubeWall));
     util::printDebug(util::ToString(d.pressureSensorTubeRadius));
-    
-    //0.015, 0.2, 0.001, 0.0015, 0.01
-    modules::pressureSensor->setDimensions(d);
-    //10514, 22629, 0.12
+       
+    modules::pressureSensor->setDimensions(d);  
+     
     Calibrate c = modules::sdCard->readCalibrateData();
     
     util::printDebug("Read Following Calibrate data from SD Card:");
@@ -134,7 +134,9 @@ int main() {
     modules::pressureSensor->start();    
     
     /* And run UI LCD/Buttons in Main Thread */
-    //modules::ui->showMenu();            
+    //modules::ui->showMenu();  
     
-    Thread::wait(osWaitForever);    
+    /* Setup is now done. Run sendReadings() to process readings and tx them as they arrive
+       while(1) so this loop should never exit. */   
+    Wireless::sendReadings();         
 }

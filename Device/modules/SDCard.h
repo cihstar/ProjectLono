@@ -6,13 +6,15 @@
 #include <string>
 #include "Dimensions.h"
 
+#include "Wireless.h"
+
 class SDCard
 {
     public:
         SDCard(PinName a, PinName b, PinName c, PinName d);
         ~SDCard();
         void writeToLog(string s);
-        void writeReading(string s);
+        void writeReading(Wireless::Reading r);
         
         Dimensions readDimensions();
         void writeDimensions(Dimensions d);

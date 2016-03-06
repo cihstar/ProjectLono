@@ -8,7 +8,6 @@
 void Wireless::init()
 {
     mode = Wireless::NONE;
-    Thread txThread(Wireless::sendThread);
 }
 
 void Wireless::setConnectionMode(Wireless::ConnectionType t)
@@ -112,38 +111,16 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
     util::printInfo("Done");
 }
 
-void Wireless::txReading(float reading)
+void Wireless::sendReadings()
 {
-    Reading r = {reading, modules::pressureSensor->getTxInterval(), util::getTimeStamp()};
-    util::printInfo("Rainfall Reading at " + r.time + ": " + util::ToString(r.value) + "mm");
-   // wirelessTxQueue.put(&r);        
-}
-
-void Wireless::sendThread(void const *p)
-{
+    Wireless::Reading* r;
     while(1)
     {
-        if (mode == GSM)
-        {
-            Reading*  message;
-            osEvent e = wirelessTxQueue.get();
-            if (e.status == osEventMessage)
-            {
-               message = (Reading*)e.value.p;                                       
-            
-                string data = "reading="+util::ToString(message->value)+"&interval="+util::ToString(message->interval)+"&time="+message->time;            
-            
-                if (!(modules::gsm->httpPost("/reading",data) == "Done"))
-                {
-                    //Failed so put back and try again.
-                    wirelessTxQueue.put(message);
-                }
-            }
-        }
-    }       
+        r = modules::pressureSensor->getNextReading();
+        modules::sdCard->writeReading(*r);
+        util::printInfo("Reading at: " + r->time + " for interval " + util::ToString((r->interval)/1000) + "s is " + util::ToString(r->value)+"mm");        
+    }
 }
-
-
 
 Wireless::ConnectionType Wireless::getConnectionMode()
 {

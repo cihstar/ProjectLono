@@ -281,6 +281,7 @@ void rt_mbx_psh (P_MCB p_CB, void *p_msg) {
         }
       }
       else {
+        printf("Mailbox overflow");
         os_error (OS_ERR_MBX_OVF);
       }
   }

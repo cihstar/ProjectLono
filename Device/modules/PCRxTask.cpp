@@ -7,14 +7,14 @@
 #include <sstream>
 
 void PCSerial::rxTask()
-{
+{    
     rxThread.signal_wait(1);    
     PCMessage* m;
     string mType;
     std::vector<string> mIns;
     string full;
     while(true)
-    {             
+    {                    
         m = modules::pc->getNextMessage();
         mType = m->getMessageType();
         full = mType;

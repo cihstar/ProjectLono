@@ -2,7 +2,7 @@
 #include "util.h"
 
 GSM::GSM(PinName tx, PinName cts, PinName rx, PinName rts, PinName ptermOn, PinName preset) : serial(rx,cts,tx,rts),
-rxThread(&GSM::threadStarter, this, osPriorityNormal,2048), print(true),
+rxThread(&GSM::threadStarter, this, osPriorityNormal,4096), print(true),
 txThread(&GSM::threadStarterTx, this, osPriorityNormal,1024),
 termOn(ptermOn), reset(preset), respWaiting(0), respFront(0),connectedToServer(false),serverConfigured(false),
 timeoutTimer(timerStarter, osTimerPeriodic, this), timeout(false), waitingForReply(false), replyFor(-1),
@@ -33,15 +33,19 @@ void GSM::timerStarter(void const* p)
 }
 
 void GSM::rxTask()
-{
+{    
     bool messageComplete = false;
     char lastC = ' ';
     bool dontPrint = false;
+    int j;
+    int i;
+    char c;
     while(1)
     {
+      //  printf("\r\GSM RX Thread Used stack: %d\r\n", rxThread.used_stack());
         Thread::signal_wait(FWS_MESSAGE_READY);  
-        int j = messagesAvailable;
-        for (int i = 0; i < j; i++)
+        j = messagesAvailable;
+        for (i = 0; i < j; i++)
         {
             messagesAvailable--;
             string message;
@@ -50,7 +54,7 @@ void GSM::rxTask()
             
             while(!messageComplete)
             {
-                char c = serial.getChar();
+                c = serial.getChar();
                 if (c == '\n' && lastC == '\r')
                 {
                     messageComplete = true;
@@ -119,18 +123,19 @@ bool GSM::isOn()
 }
 
 void GSM::txTask()
-{
+{    
+    GSMMessage* m;
     while(1)
-    {               
+    { 
         osEvent e = sendQueue.get();
         //send messages from queue
         if (!waitingForReply)
         {                        
             if (e.status == osEventMessage)
             {
-                GSMMessage* m = (GSMMessage*) e.value.p;
+                m = (GSMMessage*) e.value.p;
                 serial.sendData(m->getMessage() + "\r");                               
-                waitingForReply = true;
+                waitingForReply = true;                
             }
         }
     }
@@ -174,8 +179,8 @@ bool GSM::connectToServer()
     if (serverConfigured)
     {
         ptr_GSM_msg m;
-        m = sendCommand("AT^SISO=0",2);
-        util::printDebug("reply from connect: " + m->getMessage(0));
+        m = sendCommand("AT^SISO=0",1);
+        //util::printDebug("reply from connect: " + m->getMessage(0));
         if (m->getMessage(0).find("OK") != string::npos)
         {
             connectedToServer = true;

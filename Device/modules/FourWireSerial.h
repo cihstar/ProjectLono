@@ -33,8 +33,7 @@ class FourWireSerial {
     
     void sendData(string data);
     void sendByte(char byte);       
-    void setBaud(int baud);
-    GSMMessage* getNextMessage();
+    void setBaud(int baud);    
     string printBuffer();
     void clearBuffer();
     void setRxThread(Thread* t, int* a);
@@ -44,8 +43,7 @@ class FourWireSerial {
     DigitalIn CTS;
     DigitalOut RTS;   
     Serial serial;
-    char charBuffer[FWS_BUFFER_LENGTH];
-    Queue<GSMMessage, 16> messageQueue;
+    char charBuffer[FWS_BUFFER_LENGTH];    
     void recieveByte();
     uint16_t len;
     char lastC;

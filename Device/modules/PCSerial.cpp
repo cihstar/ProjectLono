@@ -1,7 +1,7 @@
 #include "PCSerial.h"
 
 PCSerial::PCSerial(PinName tx, PinName rx, uint8_t size) : ser(tx,rx), echo(true), 
-rxThread(&PCSerial::threadStarter, this, osPriorityNormal,4096), newm(), enableInput(false)
+rxThread(&PCSerial::threadStarter, this, osPriorityNormal,3096), newm(), enableInput(false)
 {
     ser.attach(this,&PCSerial::rxByte);
     count = 0;

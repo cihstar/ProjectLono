@@ -17,7 +17,7 @@ void BatteryLevel::timerStarter(void const* p)
 }
 
 void BatteryLevel::timerTask()
-{
+{    
     util::printInfo("Battery Level: " + util::ToString(read()) + "V");
 }
 

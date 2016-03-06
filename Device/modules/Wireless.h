@@ -22,16 +22,15 @@ namespace Wireless
         string time;
     };
     
+    void sendReadings();
+    
     void init();
-    void setConnectionMode(Wireless::ConnectionType t);   
-    void txReading(float reading);
-    void sendThread(void const* p);
+    void setConnectionMode(Wireless::ConnectionType t);           
     Wireless::ConnectionType getConnectionMode();
     string getConnectionModeString();
     void getTime();
     
-    static ConnectionType mode;
-    static Queue<Reading, 12> wirelessTxQueue;
+    static ConnectionType mode;        
 }
 
 #endif

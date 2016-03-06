@@ -309,6 +309,7 @@ void rt_psq_enq (OS_ID entry, U32 arg) {
     os_psq->q[idx].arg = arg;
   }
   else {
+    printf("FIFO Overflow");
     os_error (OS_ERR_FIFO_OVF);
   }
 }

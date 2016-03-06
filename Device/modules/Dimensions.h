@@ -17,4 +17,11 @@ struct Calibrate
     float fullHeight;
 };
 
+struct Timing
+{
+    uint16_t tx; //Time between sending readings in ms
+    uint16_t samp; //How often to sample the sensor in ms
+    uint16_t reads; //how many reads of the sensor to average per sample
+};
+
 #endif

@@ -3,10 +3,8 @@
 
 //AS PER: http://www.tayloredge.com/reference/Interface/SDPINOUT.pdf
 
-SDFileSystem sd(p5, p6, p7, p8, "sd");
-
 SDCard::SDCard(PinName a, PinName b, PinName c, PinName d):
-active(false)
+active(true)
 {      
     if (active)
     {     
@@ -78,17 +76,17 @@ string SDCard::readLog()
     }
 }
 
-void SDCard::writeReading(string s)
+void SDCard::writeReading(Wireless::Reading r)
 {
     if (active)
     {
-        FILE *fp = fopen("/sd/lono/data.txt", "a");
+        FILE *fp = fopen("/sd/lono/data.csv", "a");
         if(fp == NULL) {    
             fclose(fp);        
             util::printError("Could not open readings data file for write\n");
             return;
         }
-        fprintf(fp, "%s\r\n", s.c_str());
+        fprintf(fp, "%s,%d,%f\r\n", (r.time).c_str(), r.interval, r.value);
         fclose(fp);
     }
 }

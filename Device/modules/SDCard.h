@@ -19,10 +19,14 @@ class SDCard
         
         Calibrate readCalibrateData();
         void writeCalibrateData(Calibrate c);
+        
+        bool fileExists(char *filename);
+        
+        string readLog();
+        void resetLog();
     
-    private:
-      //  SDFileSystem sd;
-      bool active;
+    private:    
+    bool active;
 };
 
 #endif

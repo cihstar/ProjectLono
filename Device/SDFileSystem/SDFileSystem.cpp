@@ -120,7 +120,7 @@
 #define SD_DBG             0
 
 SDFileSystem::SDFileSystem(PinName mosi, PinName miso, PinName sclk, PinName cs, const char* name) :
-    FATFileSystem(name), _spi(mosi, miso, sclk), _cs(cs) {
+    FATFileSystem(name), _spi(mosi, miso, sclk), _cs(cs) {        
     _cs = 1;
 }
 

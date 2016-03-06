@@ -1,0 +1,333 @@
+<html>
+<head>
+<title> Simulation Rain Gauge </title>
+<script src="http://code.jquery.com/jquery-1.12.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/1.0.2/Chart.min.js"></script>
+<script src="Chart.Scatter.js"></script>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://code.getmdl.io/1.1.1/material.indigo-pink.min.css">
+<script defer src="https://code.getmdl.io/1.1.1/material.min.js"></script>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+</head>
+
+<body>
+    
+  <!-- Always shows a header, even in smaller screens. -->
+<div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+  <header class="mdl-layout__header">
+    <div class="mdl-layout__header-row">
+      <!-- Title -->
+      <span class="mdl-layout-title">Project Lono</span>
+      <!-- Add spacer, to align navigation to the right -->
+      <div class="mdl-layout-spacer"></div>
+      <!-- Navigation. We hide it in small screens. -->
+      <nav class="mdl-navigation mdl-layout--large-screen-only">
+        <a class="mdl-navigation__link" href="">Link</a>
+        <a class="mdl-navigation__link" href="">Link</a>
+        <a class="mdl-navigation__link" href="">Link</a>
+        <a class="mdl-navigation__link" href="">Link</a>
+      </nav>
+    </div>
+  </header>
+  <div class="mdl-layout__drawer">
+    <span class="mdl-layout-title">Title</span>
+    <nav class="mdl-navigation">
+      <a class="mdl-navigation__link" href="">Link</a>
+      <a class="mdl-navigation__link" href="">Link</a>
+      <a class="mdl-navigation__link" href="">Link</a>
+      <a class="mdl-navigation__link" href="">Link</a>
+    </nav>
+  </div>
+  <main class="mdl-layout__content">
+    <div class="page-content" style="padding: 10px"><!-- Your content goes here -->
+    
+    <div class="mdl-grid">
+    
+            <div class="mdl-cell mdl-cell--4-col graybox">
+
+                <div class="mdl-card mdl-shadow--4dp">
+                <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Register</h2>
+                </div>
+                <div class="mdl-card__supporting-text">
+                <form action="#">
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" id="id">
+                <label class="mdl-textfield__label" for="sample3">Device ID</label>
+                </div>
+                </form>
+                </div>
+                <div class="mdl-card__actions">
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" id="register">Register!</button>
+                </div>
+                </div>
+                </div>
+
+                <div class="mdl-cell mdl-cell--4-col graybox">
+                <div class="mdl-card mdl-shadow--4dp">
+                <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Send Reading</h2>
+                </div>
+                <div class="mdl-card__supporting-text">
+                <form action="#">
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" id="reading">
+                <label class="mdl-textfield__label" for="sample3">Rainfall Reading /mm</label>
+                </div>
+                </form>
+                <form action="#">
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" id="interval">
+                <label class="mdl-textfield__label" for="sample3">Reading Interval /s</label>
+                </div>
+                </form>
+
+                <form action="#">
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" id="datetime">
+                <label class="mdl-textfield__label" for="sample3">Reading Date/Time</label>
+                </div>
+                </form>
+                </div>
+                <div class="mdl-card__actions">
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" id="send">Send</button>
+                </div>
+                </div> 
+            </div>
+    
+    
+    
+            <div class="mdl-cell mdl-cell--4-col graybox">
+                
+                
+                 <div class="mdl-card mdl-shadow--4dp">
+                <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Graph Data</h2>
+                </div>
+                <div class="mdl-card__supporting-text">
+                <form action="#">
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" id="start">
+                <label class="mdl-textfield__label" for="sample3">Start Time</label>
+                </div>
+                </form>
+                <form action="#">
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" id="end">
+                <label class="mdl-textfield__label" for="sample3">End Time</label>
+                </div>
+                </form>
+                </div>
+                <div class="mdl-card__actions">
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" id="get">Graph Data</button>
+                </div>
+                </div>
+                </div>                                                
+    
+             <div class="mdl-cell mdl-cell--4-col graybox">
+                
+                
+                 <div class="mdl-card mdl-shadow--4dp">
+                <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Reply From Server</h2>
+                </div>
+                <div class="mdl-card__supporting-text">
+                <p id="reply"></p>
+                </div>
+                </div>
+                                  
+            </div>
+            
+            <div class="mdl-cell mdl-cell--4-col graybox">
+                 <div class="mdl-card mdl-shadow--4dp">
+                <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Registered Devices</h2>
+                </div>
+                <div class="mdl-card__supporting-text">
+                <ul id="deviceList" class='mdl-list'>
+                </ul>
+                </div>
+                
+                <div id = "editDevice">
+                <div class="mdl-card__supporting-text">
+                     <form action="#">
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input" type="text" id="deviceid">
+                    <label class="mdl-textfield__label" for="sample3">ID</label>
+                    </div>
+                    </form>
+                    
+                    
+                    
+                    <form action="#">
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input" type="text" id="deviceName">
+                    <label class="mdl-textfield__label" for="sample3">Name</label>
+                    </div>
+                    </form>
+                    
+                    <form action="#">
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input" type="text" id="devicePosition">
+                    <label class="mdl-textfield__label" for="sample3">Position</label>
+                    </div>
+                    </form>
+                    
+                </div>
+                
+                <div class="mdl-card__actions">
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" id="editDeviceSaveButton">Save</button>
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" id="editDeviceCancelButton">Cancel</button>
+                </div>
+                
+                </div>
+
+            </div>
+       </div>
+    
+    
+    
+    </div>
+    
+    <h3>ChartJS with Scatter extention</h3>
+    <canvas id="myChart" width="600" height="400"></canvas>
+    
+    <h3>Plot.ly JS</h3>
+    <div id="myDiv" style="width: 600px; height: 400px;"><!-- Plotly chart will be drawn inside this DIV --></div>
+    
+    </div>
+  </main>
+</div>   
+    
+    <script type="text/javascript">
+    
+    var url = "http://lono-rain.appspot.com";
+    //var url = "http://localhost:8082";
+
+    var registerFun = function()
+    {        
+        $.post( url+"/reg", {id:$(id).val()}, function( data ) {
+        $(reply).html( data ); });
+    }
+    
+    var readingFun = function()
+    {        
+        $.post( url+"/send", {id:$(id).val(), reading:$(reading).val(), time:$(datetime).val(), interval:$(interval).val()}, function( data ) {
+        $(reply).html( data ); });
+    }
+    
+    var getDataFun = function()
+    {        
+        $.post( url+"/getDataForDeviceInRange", {id:$(id).val(), start:$(start).val(), end:$(end).val()}, 
+        function( returnData ) {
+            $(reply).html( returnData );
+            
+            var jsonData = $.parseJSON(returnData);
+            var myData = [];    
+            
+            var plx = [];
+            var ply = [];  
+            
+            for (i = 0; i < jsonData.length; i++)
+            {                
+                myData.push({x:Date.parse(jsonData[i].time), y:(jsonData[i].value * ((60*60) / jsonData[i].interval)) });
+                
+                plx.push(jsonData[i].time);
+                ply.push( (jsonData[i].value * ((60*60) / jsonData[i].interval)) );                
+            }
+            
+             var pldata = [
+                {
+                    x: plx,
+                    y: ply,
+                    type: 'scatter'
+                }
+            ];
+            
+
+            Plotly.newPlot('myDiv', pldata);
+            
+            
+            var data = {datasets: [
+                {
+                    label: "Rainfall",
+                    fillColor: "rgba(220,220,220,0.2)",
+                    strokeColor: "rgba(220,220,220,1)",
+                    pointColor: "rgba(220,220,220,1)",
+                    pointStrokeColor: "#fff",
+                    pointHighlightFill: "#fff",
+                    pointHighlightStroke: "rgba(220,220,220,1)",
+                    data: myData
+                }]};  
+            var myLineChart = new Chart(ctx).Scatter(data, {scaleType: "date", scaleDateFormat: "dd/mm/yy", scaleTimeFormat:"HH:MM", scaleDateTimeFormat: "dd mmmm yyyy HH:MM:ss"});
+     });
+    }
+    
+    $(register).click(registerFun);
+    $(send).click(readingFun);
+    $(get).click(getDataFun);
+    
+    
+    var ctx = $("#myChart").get(0).getContext("2d");
+    
+    var deviceListData;
+    var clickedItem;
+    
+    var deviceClick = function(id)
+    {        
+        $(deviceList).hide();
+        $(editDevice).show();        
+        $(deviceName).val(deviceListData[id].name);
+        $(devicePosition).val(deviceListData[id].position);
+        $(deviceid).val(deviceListData[id].id);
+    }
+    
+    var deviceCancelClick = function()
+    {
+         $(editDevice).hide();
+         $(deviceList).show();
+    }
+    $(editDeviceCancelButton).click(deviceCancelClick);
+    
+    var deviceSaveClick = function()
+    {
+        $(editDevice).hide();
+        $(deviceList).show();
+        $.post( url+"/editDeviceDetails", {id:$(deviceid).val(), name:$(deviceName).val(), lat:$(devicePosition).val(), long:$(devicePosition).val()}, function( data ) {
+        $(reply).html( data ); 
+        update();});
+    }
+    $(editDeviceSaveButton).click(deviceSaveClick);
+    
+    var update = function()
+    {
+        $.get( url+"/getDeviceList", 
+        function( returnData ) {
+            $(reply).html( returnData );
+            
+            deviceListData = $.parseJSON(returnData);             
+            $(deviceList).empty();
+            for (i = 0; i < deviceListData.length; i++)
+            {                            
+                $(deviceList).append("<li onclick='{deviceClick("+deviceListData[i].id + ");}' class='mdl-list__item'><span class='mdl-list__item-primary-content'>"+deviceListData[i].name+"</span></li>")
+            }                
+        });   
+    }
+    
+    $(document).ready(function() {
+        $(editDevice).hide();
+        update(); 
+    });
+    
+
+
+</script>
+    
+</body>
+</html>

@@ -38,6 +38,11 @@ namespace util
             }
         #endif
     }
+    
+    void printNoLog(string s)
+    {
+        modules::pc->print(s + "\r\n");
+    }
 
     void printError(string s)
     {        

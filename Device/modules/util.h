@@ -12,6 +12,7 @@ namespace util
     void printError(std::string s);
     void print(std::string s);
     void printBreak();
+    void printNoLog(string s);
     int ToInt(std::string s);
     uint16_t ToUint(std::string s);
     float ToFloat(std::string s);

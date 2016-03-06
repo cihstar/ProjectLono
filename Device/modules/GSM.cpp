@@ -2,7 +2,7 @@
 #include "util.h"
 
 GSM::GSM(PinName tx, PinName cts, PinName rx, PinName rts, PinName ptermOn, PinName preset) : serial(rx,cts,tx,rts),
-rxThread(&GSM::threadStarter, this, osPriorityNormal,2048), print(false),
+rxThread(&GSM::threadStarter, this, osPriorityNormal,2048), print(true),
 txThread(&GSM::threadStarterTx, this, osPriorityNormal,1024),
 termOn(ptermOn), reset(preset), respWaiting(0), respFront(0),connectedToServer(false),serverConfigured(false),
 timeoutTimer(timerStarter, osTimerPeriodic, this), timeout(false), waitingForReply(false), replyFor(-1),
@@ -13,44 +13,6 @@ longOperationInProg(false), powerOn(false), messagesAvailable(0)
 
 GSM::~GSM()
 {}
-
-void GSM::init()
-{
-    int count = 0;
-    while (!powerOn)
-    {
-        if (count == 1)
-        {
-            util::printDebug("May have failed to power on GSM module. Continuing...");
-            break;
-        }
-        DigitalOut resetme(p29);
-        DigitalOut me(p26);
-        serial.setBaud(115200);    
-        resetme = 1;    
-        me = 0;    
-        wait(0.5);    
-        me = 1;
-        wait(1.2);    
-        me = 0;
-        wait(2);
-        count++;
-    }
-    
-   // ptr_GSM_msg m = sendCommand("AT+IPR=9600",2); //set baud rate to 9600 to slow it down
-   //for (int i = 0; i < 2; i++)
-    //{
-      //  util::printDebug("Reply from baud: " + m->getMessage(i));
-    //}
-    
-    //m = sendCommand("ATE0",2); //disable echo
-    //for (int i = 0; i < 2; i++)
-    //{
-      //  util::printDebug("Reply from disable echo: " + m->getMessage(i));
-   // }
-    
-    serial.clearBuffer();            
-}
 
 void GSM::threadStarter(void const *p)
 {
@@ -182,7 +144,7 @@ bool GSM::configureServerConnection(string url)
     m = sendCommand("AT^SICS=0,conType,GPRS0",1);    
     if (m->getMessage(0).find("OK") != string::npos)
     {        
-        m = sendCommand("AT^SICS=0,apn,EEM2M",1);               
+        m = sendCommand("AT^SICS=0,apn,goto.virginmobile.uk",1);               
         if (m->getMessage(0).find("OK") != string::npos)
         {             
             m = sendCommand("AT^SISS=0,srvType,http",1);                       
@@ -211,7 +173,17 @@ bool GSM::connectToServer()
 {
     if (serverConfigured)
     {
-        connectedToServer = (((sendCommand("AT^SISO=0"))->getMessage(0)).find("OK") != string::npos);
+        ptr_GSM_msg m;
+        m = sendCommand("AT^SISO=0",2);
+        util::printDebug("reply from connect: " + m->getMessage(0));
+        if (m->getMessage(0).find("OK") != string::npos)
+        {
+            connectedToServer = true;
+        }
+        else
+        {
+            connectedToServer = false;
+        }
         return connectedToServer;
     }
 }
@@ -221,7 +193,7 @@ bool GSM::disconnectFromServer()
     if (connectedToServer && serverConfigured)
     {
         connectedToServer = !(((sendCommand("AT^SISC=0"))->getMessage(0)).find("OK") != string::npos);
-        return connectedToServer;
+        return !connectedToServer;
     }
 }
 
@@ -231,7 +203,8 @@ string GSM::httpPost(string url, string data)
     longOperationInProg = true;    
     if (!connectToServer())
     {
-        longOperationInProg = false;        
+        longOperationInProg = false;  
+        util::printDebug("not conn to server");      
         return "NOT_CONNECTED_TO_SERVER";
     }
     ptr_GSM_msg m;

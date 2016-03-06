@@ -6,6 +6,8 @@
 
 #include "Dimensions.h"
 
+#include <string>
+
 //Acceleration due to gravity in m.s^-2
 #define G 9.81
 
@@ -22,17 +24,25 @@ class PressureSensor
         void setDimensions(Dimensions d);
         void calibrate(Calibrate c);
         void setTiming(int tTx, int tSamp, int reads);
+        bool getActive();
+        string getLastReading();
+        int getTxInterval();
         
     private:
         AnalogIn sensor;
         DigitalOut sleepPin; 
-        RtosTimer timer;
+        Thread timer;
         void timerTask();    
         static void timerStarter(void const *p);
+        bool timerStarted;
         
         float toHeight( uint16_t adcVal);
         float calcTubeOut(float height);
         
+        bool active;
+        string lastReading;
+        
+        float reading;
         float area(float r);
         
         /* Reading variables */

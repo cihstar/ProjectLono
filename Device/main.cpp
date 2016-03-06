@@ -36,7 +36,6 @@ void timerTask(void const *p)
     wdt.kick();
 }
 
-
 /** Module Declarations **/
 
 PCSerial* modules::pc;
@@ -48,7 +47,7 @@ GSM* modules::gsm;
 XBEE* modules::xbee;
 
 /*** Main Function - Initialise Everything! ***/
-int main() {         
+int main() {     
     /* Watchdog Setup */
     RtosTimer watchdogTimer(timerTask, osTimerPeriodic);
     wdt.kick(10.0); //set to 10 seconds
@@ -59,13 +58,19 @@ int main() {
         startedFromWatchdog = true;
     } 
     
+    /* SD Card */
+    
     /* Initialise PC Serial Link */
     modules::pc = new PCSerial(USB_SERIAL_TX, USB_SERIAL_RX, 128);
+    
+    /* Init SD Card */
+    modules::sdCard = new SDCard(SD_MOSI, SD_MISO, SD_CLK, SD_CS);
     
     /* Print Info */
     util::printBreak();
     util::printInfo("Welcome to Project Lono - Smart Rain Gauge");
     util::printInfo("PC Serial Link initialised");
+    util::printInfo("SD Card initialised");
     
     if (startedFromWatchdog)
     {
@@ -73,24 +78,20 @@ int main() {
     }
     
     /* Init LCD Screen and Buttons */
-    modules::ui = new UI(LCD_SDA, LCD_SCL, LCD_RST, PB1, PB2, PB3);
-    modules::ui->writeText("Project Lono Starting Up...");
-    util::printInfo("LCD Screen Initialised");
-    
-    /* Initialise SD Card */
-    modules::sdCard = new SDCard(SD_MOSI, SD_MISO, SD_CLK, SD_CS);
-    util::printInfo("SD Card initialised");
+ //   modules::ui = new UI(LCD_SDA, LCD_SCL, LCD_RST, PB1, PB2, PB3);
+    //modules::ui->writeText("Project Lono", "Initialising...");   
+    util::printInfo("LCD Screen Initialised");    
     
     /* Initialise Wireless Module */  
     Wireless::init();     
     modules::gsm = new GSM(GSM_TX, GSM_RTS, GSM_RX, GSM_CTS, GSM_RESET, GSM_TERM_ON);
     modules::xbee = new XBEE();     
-    Wireless::setConnectionMode(Wireless::GSM);
-    util::printInfo("Wirelesss Module initialised");                
+    Wireless::setConnectionMode(Wireless::NONE);
+    util::printInfo("Wirelesss Module initialised");           
        
     /* Init Battery level sensor */
     modules::battery = new BatteryLevel(BATTERY_LEVEL);
-    util::printInfo("Battery Level: " + util::ToString(modules::battery->read()) + "V");
+    util::printInfo("Battery Level: " + util::ToString(modules::battery->read()) + "V");    
     
     /* Init Pressure Sensor */
     modules::pressureSensor = new PressureSensor(P_SENSE_OUT, P_SENSE_SLEEP);
@@ -101,21 +102,39 @@ int main() {
     util::printInfo("Project Lono Started Up!");
     util::printDebug("Debug Mode Enabled");  
     util::printInfo("Type help for list of commands");  
-    util::printBreak();    
+    util::printBreak();
+    
+    util::printInfo(modules::sdCard->readLog());    
     
     /* Threads in various objects will now be running */
     modules::pc->setEnableInput(true);
     
-    /* Start pressure sensor readings */
+    /* Start pressure sensor readings */    
     Dimensions d = modules::sdCard->readDimensions();
+    
+    util::printDebug("Read Following Dimensions data from SD Card:");
+    util::printDebug(util::ToString(d.tubeRadius));
+    util::printDebug(util::ToString(d.funnelRadius));
+    util::printDebug(util::ToString(d.outTubeRadius));
+    util::printDebug(util::ToString(d.outTubeWall));
+    util::printDebug(util::ToString(d.pressureSensorTubeRadius));
+    
     //0.015, 0.2, 0.001, 0.0015, 0.01
     modules::pressureSensor->setDimensions(d);
     //10514, 22629, 0.12
     Calibrate c = modules::sdCard->readCalibrateData();
+    
+    util::printDebug("Read Following Calibrate data from SD Card:");
+    util::printDebug(util::ToString(c.fullAdc));
+    util::printDebug(util::ToString(c.emptyAdc));
+    util::printDebug(util::ToString(c.fullHeight));
+    
     modules::pressureSensor->calibrate(c);
     modules::pressureSensor->setTiming(10000, 10, 100);
-    modules::pressureSensor->start();
+    modules::pressureSensor->start();    
     
-    /* And goodbye */
+    /* And run UI LCD/Buttons in Main Thread */
+    //modules::ui->showMenu();            
+    
     Thread::wait(osWaitForever);    
 }

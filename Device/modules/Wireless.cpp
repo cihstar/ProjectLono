@@ -114,9 +114,9 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
 
 void Wireless::txReading(float reading)
 {
-    Reading r = {reading, util::getTimeStamp()};
+    Reading r = {reading, modules::pressureSensor->getTxInterval(), util::getTimeStamp()};
     util::printInfo("Rainfall Reading at " + r.time + ": " + util::ToString(r.value) + "mm");
-    wirelessTxQueue.put(&r);        
+   // wirelessTxQueue.put(&r);        
 }
 
 void Wireless::sendThread(void const *p)
@@ -131,7 +131,7 @@ void Wireless::sendThread(void const *p)
             {
                message = (Reading*)e.value.p;                                       
             
-                string data = "r="+util::ToString(message->value)+"&time="+message->time;            
+                string data = "reading="+util::ToString(message->value)+"&interval="+util::ToString(message->interval)+"&time="+message->time;            
             
                 if (!(modules::gsm->httpPost("/reading",data) == "Done"))
                 {
@@ -148,6 +148,22 @@ void Wireless::sendThread(void const *p)
 Wireless::ConnectionType Wireless::getConnectionMode()
 {
     return mode;
+}
+
+string Wireless::getConnectionModeString()
+{
+    if (mode == Wireless::GSM)
+    {
+        return "GSM";
+    }
+    else if (mode == Wireless::XBEE)
+    {
+        return "XBEE";    
+    }
+    else
+    {
+        return "None";
+    }
 }
 
 void Wireless::getTime()

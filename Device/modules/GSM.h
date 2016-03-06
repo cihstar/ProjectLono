@@ -21,8 +21,7 @@ class GSM {
     string httpGet(string url);
     bool configureServerConnection(string url);
     void timeoutFunction();
-    void sendCommandNoReply(string cmd);
-    void init();
+    void sendCommandNoReply(string cmd);    
     bool isOn();
     
   private:

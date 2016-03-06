@@ -4,10 +4,10 @@
 #include <math.h>
 
 PressureSensor::PressureSensor(PinName out, PinName sleep) :
-sensor(out), sleepPin(sleep), timer(timerStarter, osTimerPeriodic, this), samples(0),
+sensor(out), sleepPin(sleep), timer(&PressureSensor::timerStarter, this, osPriorityNormal,3000), samples(0),
 totalRain(0), emptying(false), lasth(0), sampsPerTx(0), readsPerSamp(0), tubeArea(0), 
 outTubeArea(0), funnelRatio(0), startEmptyHeight(0), endEmptyHeight(0), calibration(0.0f),
-offset(0)
+offset(0), active(false), lastReading("None"), reading(0), timerStarted(false)
 {
 }
 
@@ -17,6 +17,11 @@ void PressureSensor::timerStarter(void const* p)
 {
     PressureSensor *instance = (PressureSensor*)p;
     instance->timerTask();
+}
+
+int PressureSensor::getTxInterval()
+{
+    return sampsPerTx * sampInterval;
 }
 
 void PressureSensor::setTiming(int tTx, int tSamp, int reads)
@@ -45,7 +50,9 @@ void PressureSensor::start()
     }
     lasth = toHeight(read());
     samples = 0;
-    timer.start(sampInterval);
+    //timer.start(sampInterval);
+    timerStarted = true;
+    active = true;
     util::printInfo("Pressure Sensor Readings Started");
     util::printInfo("Tube Area: " + util::ToString(tubeArea) + " m^2");
     util::printInfo("Out Tube Area: " + util::ToString(outTubeArea) + " m^2");
@@ -54,10 +61,17 @@ void PressureSensor::start()
     util::printInfo("Calibration Offset: " + util::ToString(offset));
 }
 
+bool PressureSensor::getActive()
+{
+    return active;
+}
+
 void PressureSensor::stopTimer()
 {
     util::printInfo("Pressure Sensor Timer Stopped");
-    timer.stop();
+    //timer.stop();
+    timerStarted = false;
+    active = false;
 }
 
 float PressureSensor::area(float r)
@@ -111,48 +125,68 @@ void PressureSensor::wakeup()
 
 void PressureSensor::timerTask()
 {
-    wakeup();
-    float h = toHeight(read());   
+    float h;
+    float waterOut;
+    string str;
     
-    //util::printDebug("Reading: " + util::ToString(h));
-    
-    if (emptying)
-    {
-        if (h <= endEmptyHeight)
-        {
-       //     util::printInfo("Tube Stopped Emptying");
-            emptying = false;
+    while(1)
+    {        
+        while(!timerStarted)
+        {            
+            Thread::wait(100);
         }
-    }
-    else
-    {
-        if (h >= startEmptyHeight)
+            
+        wakeup();
+        h = toHeight(read());   
+        
+        //util::printDebug("Reading: " + util::ToString(h));
+        
+        if (emptying)
         {
-        //    util::printInfo("Tube Emptying");
-            emptying = true;
+            if (h <= endEmptyHeight)
+            {
+        //     util::printInfo("Tube Stopped Emptying");
+                emptying = false;
+            }
         }
+        else
+        {
+            if (h >= startEmptyHeight)
+            {
+            //    util::printInfo("Tube Emptying");
+                emptying = true;
+            }
+        }
+        
+        waterOut = 0;
+        if (emptying)
+        {
+            waterOut = calcTubeOut(h);
+        }    
+        
+        totalRain += h + waterOut - lasth;
+        
+        lasth = h;
+        samples++;
+        
+        if (samples == sampsPerTx)
+        {
+            reading = totalRain * funnelRatio;              
+            str = util::ToString(reading);              
+            lastReading = str;                   
+            modules::sdCard->writeReading(str);              
+            Wireless::txReading(reading);                 
+            samples = 0;
+            totalRain = 0;              
+        }
+        sleep();    
+    Thread::wait(sampInterval);
     }
-    
-    float waterOut = 0;
-    if (emptying)
-    {
-        waterOut = calcTubeOut(h);
-    }    
-    
-    totalRain += h + waterOut - lasth;
-    
-    lasth = h;
-    samples++;
-    
-    if (samples == sampsPerTx)
-    {
-        float reading = totalRain * funnelRatio;         
-        modules::sdCard->writeReading(util::ToString(reading));
-        Wireless::txReading(reading);   
-        samples = 0;
-        totalRain = 0;
-    }
-    sleep();
+}
+
+string PressureSensor::getLastReading()
+{
+    return lastReading;
 }
 
 float PressureSensor::calcTubeOut(float h)

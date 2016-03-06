@@ -25,7 +25,7 @@ void PCSerial::rxTask()
             full+= " " + mIns[i];         
         }    
                    
-       modules::sdCard->writeToLog("PC: "+full);
+       //modules::sdCard->writeToLog("PC: "+full);
          
         if (gsmMode)
         {

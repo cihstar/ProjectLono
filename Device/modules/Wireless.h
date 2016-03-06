@@ -18,6 +18,7 @@ namespace Wireless
     struct Reading
     {
         float value;
+        int interval; //seconds that reading is for
         string time;
     };
     
@@ -26,6 +27,7 @@ namespace Wireless
     void txReading(float reading);
     void sendThread(void const* p);
     Wireless::ConnectionType getConnectionMode();
+    string getConnectionModeString();
     void getTime();
     
     static ConnectionType mode;

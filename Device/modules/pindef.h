@@ -33,8 +33,8 @@
 #define LCD_RST p11
 
 #define PB1 p25
-#define PB2 p24
-#define PB3 p23
+#define PB2 p23
+#define PB3 p24
 
 #define BATTERY_LEVEL p16
 

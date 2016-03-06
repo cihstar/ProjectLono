@@ -3,15 +3,28 @@
 #include "rtos.h"
 
 UI::UI(PinName sda, PinName scl, PinName rst, PinName b1, PinName b2, PinName b3):
-lcd(sda,scl), buttons{b1,b2,b3}, reset(rst), timeout(timerStarter, osTimerPeriodic, this),
-Timeout(false)
+dbuttons{b1,b2,b3}, reset(rst), menuActive(false), activeMenuItem(-1), timer(timerStarter, osTimerPeriodic, this)
 {
-    reset = 1;       
-    sendCommand(0x38,0,0); //init lcd. 8-bit I2C, 2 line display, normal font, normal instructions
-    setEntryMode(true); //increment to left after each write
+    reset = 1;  
+    lcd = new SB1602E(p9,p10);   
+    
+    dbuttons[0].attach_asserted(this, &UI::button1Push);
+    dbuttons[1].attach_asserted(this, &UI::button2Push);
+    dbuttons[2].attach_asserted(this, &UI::button3Push);
+    
+    dbuttons[0].setSampleFrequency();
+    dbuttons[1].setSampleFrequency();
+    dbuttons[2].setSampleFrequency();
+    
+    menuItems.push_back("Stauts");
+    menuItems.push_back("History");
+    menuItems.push_back("Battery");
+    menuItems.push_back("Wireless");
+    menuItems.push_back("Pressure Sensor");
+    menuItems.push_back("Hi Jess");        
+    
+    timer.start(SCREEN_TIMEOUT);
 }
-
-UI::~UI(){}
 
 void UI::timerStarter(void const* p)
 {
@@ -21,163 +34,154 @@ void UI::timerStarter(void const* p)
 
 void UI::timerTask()
 {
-    Timeout = true;
+    screenOff();
+    menuActive = false;
 }
 
-bool UI::sendCommand(char byte, bool rs, bool rw)
+void UI::screenOn()
 {
-    Timeout = false;
-    timeout.start(5000);
-    char addr;
-    char control;
-    char send[2];
-    
-    addr = 0x7C;
-    
-    if (rs)
+    lcd->contrast(0x35);
+    timer.start(SCREEN_TIMEOUT);
+}
+
+void UI::screenOff()
+{
+    lcd->contrast(0);
+    timer.stop();
+}
+
+void UI::showMenu()
+{
+    screenOn();
+    writeText("Menu...");
+    activeMenuItem = -1;
+    menuActive = true;
+    Thread::wait(3000); 
+    menuUp();
+}
+
+UI::~UI()
+{
+    delete lcd;
+}
+
+void UI::writeText(string line1, string line2)
+{    
+    lcd->clear();
+    lcd->puts(0,line1.c_str());
+    if (line2 != "")
     {
-        control = 0x00;
+        lcd->puts(1,line2.c_str());
     }
+}
+
+void UI::menuUp()
+{
+    util::printDebug("Active: " + util::ToString(activeMenuItem) + " Size: " + util::ToString(menuItems.size()));
+    if ( (activeMenuItem + 1) < (int) menuItems.size())
+    {
+        activeMenuItem++;
+        writeText(menuItems[activeMenuItem]);
+    }
+}
+
+void UI::menuDown()
+{
+    util::printDebug("Active: " + util::ToString(activeMenuItem) + " Size: " + util::ToString(menuItems.size()));
+    if ( (activeMenuItem - 1) > -1)
+    {
+        activeMenuItem--;
+        writeText(menuItems[activeMenuItem]);
+    }
+}
+
+void UI::button1Push()
+{            
+    timer.start(SCREEN_TIMEOUT);        
+    util::printDebug("Button 1 Pushed!");   
+    if (!menuActive)
+    {
+        showMenu();
+    }   
     else
     {
-        control = 0xC0;   
-    }
-    
-    send[0] = control;
-    send[1] = byte;
-        
-    if (!waitOnBusy())
-    {
-        return false;   
-    }
-    
-    return lcd.write(addr, send, 2);
-}
-
-bool UI::waitOnBusy()
-{
-    char cmd[2];
-    char addr = 0x7C; //addr
-    cmd[0] = 0x00; //control
-    
-    char r[2];
-    
-    r[0] = 'A';
-    
-    do
-    {
-        int a = lcd.write(addr, cmd, 1);
-        if ( a != 0)
-        {
-            util::printDebug("write fail");
-            util::printDebug(util::ToString((uint8_t) a));
-            return false;
-        }
-        
-        int b = lcd.read(addr, r, 1);
-        if ( b != 0)
-        {
-            util::printDebug("read fail");
-            util::printDebug(util::ToString(b));
-            util::printDebug("Reply from busy: " + util::ToString((uint8_t) r[0]));
-            return false;
-        }
-        
-        if (Timeout)
-        {
-            return false;
-        }
-        if (r[0] == 0xFF)
-        {
-            util::printDebug("Reply from busy: " + util::ToString((uint8_t) r[0]));
-        }
-    }
-     while( !((r[0] & 0x80) == 0x80));
-     
-     return true;
-}
-
-void UI::clearDisplay()
-{
-    if (!sendCommand(0x01, 0, 0))
-    {
-        util::printError("Clear LCD Display Failed");
-    }
-}
-
-void UI::returnHome()
-{
-    if (!sendCommand(0x02, 0, 0))
-    {
-        util::printError("LCD Return Home Failed");
+        menuDown();
     }      
 }
 
-void UI::displayOn()
+void UI::button2Push()
 {
-    //display on, cursor on, cursor pos on = 0x0F
-    //display on, cursor on, cursor pos off = 0x0E
-    //display on, cursor off, cursor pos on = 0x0E
-    //display on, cursor on, cursor pos off = 0x0D
-    //display on, cursor off, cursor pos off = 0x0C
-    if (!sendCommand(0x0F, 0, 0))
+    timer.start(SCREEN_TIMEOUT);
+    util::printDebug("Button 2 Pushed!");
+    if (!menuActive)
     {
-        util::printError("LCD Display on Failed");
-    }
-}
-
-void UI::displayOff()
-{
-    if (!sendCommand(0x08, 0, 0))
-    {
-        util::printError("LCD Display off Failed");
-    }   
-}
-
-void UI::setEntryMode(bool p)
-{
-    //or off completely = 0x04
-    char cmd;
-    if (p)
-    {
-        //cursor moves to right after write
-        cmd = 0x06;
-    }
-    else
-    {
-        //cursor moves to left after write
-        cmd = 0x05;
-    }
-    if (!sendCommand(cmd, 0, 0))
-    {
-        util::printError("LCD Set entry mode Failed");
+        showMenu();
     }  
-}
-
-void UI::writeText(string text)
-{
-    clearDisplay();
-    returnHome();
-    if (!(sendCommand(0x80,0,0)))
-    {   //send DDRAM address to 0.
-        return;
-    }
-    
-    int max;
-    if (text.length() > 80)
-    {
-        max = 80;
-    }
     else
     {
-        max = text.length();
-    }
-    
-    for (int i = 0; i<max; i++)
-    {
-        if (!sendCommand((char)text[i],1,0))
+        if (activeMenuItem == 0)
         {
-            return;
+            //Status
+            menuActive = false;
+            printStatus();
+            showMenu();
         }
+    } 
+}
+
+void UI::button3Push()
+{
+    timer.start(SCREEN_TIMEOUT);
+    util::printDebug("Button 3 Pushed!");
+    if (!menuActive)
+    {
+        showMenu();
+    }   
+    else
+    {
+        menuUp();
     }
+}
+
+void UI::printStatus()
+{
+    int t = 5000;
+    string str;
+    
+    if (!menuActive)
+    {
+        writeText("Device Status");
+    }
+    //wait(5);
+    Thread::wait(t);
+    
+    str = modules::pressureSensor->getActive() ? "Active" : "Disabled";
+    if (!menuActive)
+    {
+        writeText("Pressure Sensor", str);
+    }
+    Thread::wait(t);
+    
+    str = modules::pressureSensor->getLastReading();
+    if (!menuActive)
+    {
+        writeText("Last Reading", str);
+    }
+    Thread::wait(t);
+    
+    str = util::getTimeStamp();
+    if (!menuActive)
+    {
+        writeText("System Time", str);
+    }   
+    Thread::wait(t);
+    
+    str = Wireless::getConnectionModeString();  
+    if (!menuActive)
+    {  
+        writeText("Wireless Mode", str);
+    }
+    Thread::wait(t);
+    
+    
 }

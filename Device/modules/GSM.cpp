@@ -3,7 +3,7 @@
 
 GSM::GSM(PinName tx, PinName cts, PinName rx, PinName rts, PinName ptermOn, PinName preset) : serial(rx,cts,tx,rts),
 rxThread(&GSM::threadStarter, this, osPriorityNormal,2400), print(false),
-txThread(&GSM::threadStarterTx, this, osPriorityNormal,512),
+txThread(&GSM::threadStarterTx, this, osPriorityNormal,412),
 termOn(ptermOn), reset(preset), respWaiting(0), respFront(0),connectedToServer(false),serverConfigured(false),
 timeoutTimer(timerStarter, osTimerPeriodic, this), timeout(false), waitingForReply(false), replyFor(-1),
 longOperationInProg(false), powerOn(false), messagesAvailable(0)
@@ -134,8 +134,7 @@ void GSM::txTask()
             if (e.status == osEventMessage)
             {
                 m = (GSMMessage*) e.value.p;
-                serial.sendData(m->getMessage() + "\r");
-            //    util::printDebug("SENT: " + m->getMessage());                               
+                serial.sendData(m->getMessage() + "\r");                                     
                 waitingForReply = true;                
             }
         }

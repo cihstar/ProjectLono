@@ -120,15 +120,15 @@ int main() {
     
     modules::pressureSensor->start();    
     
-    /* And run UI LCD/Buttons in Main Thread */
-    modules::ui->showMenu();  
-    
     /* Finish Boot up Info Printing */
     util::printInfo("System Time -> " + util::getTimeStamp());
     util::printInfo("Project Lono Started Up!");
     util::printDebug("Debug Mode Enabled");  
     util::printInfo("Type help for list of commands");  
     util::printBreak();
+    
+    /* And run UI LCD/Buttons in Main Thread */
+    modules::ui->showMenu();  
     
      /* Setup is now done. Run sendReadings() to process readings and tx them as they arrive
        while(1) so this loop should never exit. */   

@@ -70,6 +70,8 @@ class PressureSensor
         float outTubeArea;
         float funnelRatio; //mm
         
+        float equationConstant;
+        
         /* Out tube on/off heights */
         float startEmptyHeight;
         float endEmptyHeight;

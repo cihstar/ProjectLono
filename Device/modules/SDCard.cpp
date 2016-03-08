@@ -93,7 +93,7 @@ void SDCard::writeReading(Wireless::Reading r)
 
 Dimensions SDCard::readDimensions()
 {        
-    Dimensions ret = {0,0,0,0,0};
+    Dimensions ret = {0,0,0,0,0,0,0};
     if (active)
     {
         char line[128];        
@@ -114,9 +114,9 @@ Dimensions SDCard::readDimensions()
         
         string str(line);
         int nextComma = -1;
-        float vals[5];           
+        float vals[7];           
         
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 7; i++)
         {            
             nextComma = str.find(",");        
             if (nextComma == -1)
@@ -130,30 +130,25 @@ Dimensions SDCard::readDimensions()
             
         }
                     
-        Dimensions d= {vals[0], vals[1], vals[2], vals[3], vals[4] };
+        Dimensions d= {vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6] };
         return d;
     }
     return ret;
 }
 
 void SDCard::writeDimensions(Dimensions d)
-{
-    util::printInfo("2");
+{    
     if (active)
-    {
-        util::printInfo("1");
+    {        
         FILE *fp = fopen("/sd/lono/dimensions.txt","w");
         if (fp==NULL)
         {
             util::printError("Could not open file for write\n");
             fclose(fp);
             return;
-        }
-        util::printInfo("2");
+        }                        
         
-        util::printInfo("Float 1:" + util::ToString(d.tubeRadius));
-        
-        fprintf(fp, "%f,%f,%f,%f,%f,", d.tubeRadius, d.funnelRadius, d.outTubeRadius, d.outTubeWall, d.pressureSensorTubeRadius);       
+        fprintf(fp, "%f,%f,%f,%f,%f,%f,%f,", d.tubeRadius, d.funnelRadius, d.outTubeRadius, d.outTubeWall, d.pressureSensorTubeRadius, d.startEmptyHeight, d.endEmptyHeight);       
         
         fclose(fp);
     }

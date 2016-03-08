@@ -103,6 +103,7 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
         else
         {
             util::printError("Device not registered with network");
+            return;
         }
          
         /* Device Info */
@@ -118,15 +119,22 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
             return;
         }        
         util::printInfo("Server connection successfully configured to "+serverUrl);
-        
+        util::printInfo("Connecting to server...");
         wait(5);
         
         /* Register with the server */
         string datetime = modules::gsm->httpPost("/reg","id="+util::ToString(deviceId));
-        //util::printDebug("returned date " + datetime);
-        util::setTime(datetime.substr(0,10), datetime.substr(11,8));
-        util::printInfo("Successfully registered with server.");
-        util::printInfo("Device ID = "+deviceId);       
+        if (datetime.length() == 20)
+        {
+            util::setTime(datetime.substr(0,10), datetime.substr(11,8));
+            util::printInfo("Successfully registered with server.");
+            util::printInfo("Device ID = "+deviceId);
+        }
+        else
+        {
+            util::printError("Unable to register with server.");
+            return;
+        }       
     }
     mode = t;
     util::printInfo("Done");
@@ -137,6 +145,7 @@ void Wireless::sendReadings()
     Wireless::Reading* r;
     string data;
     string time;
+    string str;
     int interval;
     float value;
     while(1)
@@ -158,9 +167,16 @@ void Wireless::sendReadings()
         /* TX reading */
         if (mode == GSM)
         {                  
-            data = "id=0&reading="+util::ToString(value)+"&interval="+util::ToString(interval)+"&time="+time;            
-            modules::gsm->httpPost("/send", data);
-            util::printInfo("TX to server was successful");
+            data = "id=0&reading="+util::ToString(value)+"&interval="+util::ToString(interval)+"&time="+time;
+            str = modules::gsm->httpPost("/send", data);            
+            if (str.find("Done") != string::npos)
+            {
+                util::printInfo("TX to server was successful");
+            }
+            else
+            {
+                util::printError("Could not TX to server. The server returned: " + str);
+            }
         }
     }
 }

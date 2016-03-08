@@ -8,6 +8,8 @@ struct Dimensions
     float outTubeRadius;
     float outTubeWall;
     float pressureSensorTubeRadius;
+    float startEmptyHeight;
+    float endEmptyHeight;
 };
 
 struct Calibrate

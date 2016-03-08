@@ -17,7 +17,7 @@ void buildCommandList()
     PCCommand readPressure("readPressure", "Get current ADC reading from Presure Sensor.", readPressureCmd, 0);
     modules::pc->addCommand(readPressure);
     
-    PCCommand setDimensions("setDimensions", "Set the physical rain gauge dimensions. Usage (all in m): setDimensions tubeRadius funnelRadius outTubeRadius outTubeWal pressureSensorTubeRadius", setDimensionsCmd, 5);
+    PCCommand setDimensions("setDimensions", "Set the physical rain gauge dimensions. Usage (all in m): setDimensions tubeRadius funnelRadius outTubeRadius outTubeWal pressureSensorTubeRadius startEmptyHeight endEmptyHeight", setDimensionsCmd, 7);
     modules::pc->addCommand(setDimensions);
     
     PCCommand setCalibration("setCalibration", "Set the calibration data for the sensor. Usage: setCalibration fullADC emptyADC fullHeight(m)", setCalibrationCmd, 3);
@@ -85,7 +85,7 @@ void readPressureCmd(vector<string> &mIns)
 void setDimensionsCmd(vector<string> &mIns)
 {
     modules::pressureSensor->stopTimer();
-    Dimensions d = {util::ToFloat(mIns[0]), util::ToFloat(mIns[1]), util::ToFloat(mIns[2]), util::ToFloat(mIns[3]), util::ToFloat(mIns[4])};
+    Dimensions d = {util::ToFloat(mIns[0]), util::ToFloat(mIns[1]), util::ToFloat(mIns[2]), util::ToFloat(mIns[3]), util::ToFloat(mIns[4]), util::ToFloat(mIns[5]), util::ToFloat(mIns[6])};
     modules::sdCard->writeDimensions(d);
     modules::pressureSensor->setDimensions(d);  
     modules::pressureSensor->start();    

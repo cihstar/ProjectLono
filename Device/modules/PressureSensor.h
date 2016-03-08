@@ -12,6 +12,8 @@
 //Acceleration due to gravity in m.s^-2
 #define G 9.81
 
+#define SAMPLE 0x01
+
 class PressureSensor
 { 
     public:
@@ -24,18 +26,22 @@ class PressureSensor
         void wakeup();
         void setDimensions(Dimensions d);
         void calibrate(Calibrate c);
-        void setTiming(int tTx, int tSamp, int reads);
+        void setTiming(Timing t);
         bool getActive();
         string getLastReading();
-        int getTxInterval();
+        uint32_t getTxInterval();
         Wireless::Reading* getNextReading();        
         
     private:
         AnalogIn sensor;
         DigitalOut sleepPin; 
-        Thread timer;
+        Thread senseThread;
+        void sensorTask();    
+        static void threadStarter(void const *p);    
+        
+        RtosTimer timer;
         void timerTask();    
-        static void timerStarter(void const *p);        
+        static void timerStarter(void const *p);
         
         float toHeight( uint16_t adcVal);
         float calcTubeOut(float height);
@@ -50,12 +56,12 @@ class PressureSensor
         
         /* Reading variables */
         bool emptying;
-        uint16_t samples;        
+        uint32_t samples;        
         float totalRain;
         float lasth;
         
         /* Timing - ms */
-        int sampsPerTx;
+        uint32_t sampsPerTx;
         int sampInterval;
         int readsPerSamp;
         

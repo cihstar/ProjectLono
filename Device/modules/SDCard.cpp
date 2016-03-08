@@ -233,3 +233,75 @@ void SDCard::writeCalibrateData(Calibrate c)
         fclose(fp);
     }
 }
+
+Timing SDCard::readTimingData()
+{
+    Timing ret = {0,0,0};
+    if (active)
+    {
+        char line[128];
+        
+        FILE *fp = fopen("/sd/lono/timing.txt","r");
+        if (fp == NULL)
+        {
+            fclose(fp);
+            util::printError("Timing File Does not exist. Please create using 'setTiming' command");
+            return ret;
+        }
+        if (fgets(line,128,fp) == NULL)
+        {
+            fclose(fp);
+            util::printError("unable to read timing data file\r\n");
+            return ret;
+        }
+        
+        fclose(fp);
+        
+        string str(line);
+        int nextComma = -1;        
+        
+        uint32_t val;
+        uint16_t vals[2];        
+        string findStr;
+                
+        for (int i = 0; i < 3; i++)
+        {            
+            nextComma = str.find(",");        
+            if (nextComma == -1)
+            {                
+                return ret;
+            }   
+            
+            findStr = str.substr(0,nextComma);               
+            if (i == 0)
+            {
+                val = std::strtoul(findStr.c_str(), NULL, 0);                
+            }           
+            else
+            {       
+                vals[i-1] = std::atoi(findStr.c_str());                
+            }            
+            str = str.substr(nextComma+1);                  
+        }
+            
+        Timing d= {val, vals[0], vals[1]};
+        return d;
+    }
+    return ret;
+}
+
+void SDCard::writeTimingData(Timing t)
+{
+    if (active)
+    {
+        FILE *fp = fopen("/sd/lono/timing.txt","w");
+        if (fp==NULL)
+        {            
+            fclose(fp);
+            util::printError("Could not open timing file for write\n");
+            return;
+        }
+        fprintf(fp, "%ld,%d,%d,", t.tx, t.samp, t.reads);
+        fclose(fp);
+    }
+}

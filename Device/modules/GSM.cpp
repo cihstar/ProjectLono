@@ -2,8 +2,8 @@
 #include "util.h"
 
 GSM::GSM(PinName tx, PinName cts, PinName rx, PinName rts, PinName ptermOn, PinName preset) : serial(rx,cts,tx,rts),
-rxThread(&GSM::threadStarter, this, osPriorityNormal,4096), print(true),
-txThread(&GSM::threadStarterTx, this, osPriorityNormal,1024),
+rxThread(&GSM::threadStarter, this, osPriorityNormal,2400), print(false),
+txThread(&GSM::threadStarterTx, this, osPriorityNormal,512),
 termOn(ptermOn), reset(preset), respWaiting(0), respFront(0),connectedToServer(false),serverConfigured(false),
 timeoutTimer(timerStarter, osTimerPeriodic, this), timeout(false), waitingForReply(false), replyFor(-1),
 longOperationInProg(false), powerOn(false), messagesAvailable(0)
@@ -96,9 +96,9 @@ void GSM::rxTask()
             
                 if (waitingForReply)
                 {
-                    GSMMessage m(message,1);
+                    string* m = new string(message);
                     mRespWaiting.lock();          
-                    sendCommandReplyQueue.put(&m);
+                    sendCommandReplyQueue.put(m);                                        
                     replyFor++;
                     replyFor %= respLength;
                     respWaiting--;            
@@ -134,7 +134,8 @@ void GSM::txTask()
             if (e.status == osEventMessage)
             {
                 m = (GSMMessage*) e.value.p;
-                serial.sendData(m->getMessage() + "\r");                               
+                serial.sendData(m->getMessage() + "\r");
+            //    util::printDebug("SENT: " + m->getMessage());                               
                 waitingForReply = true;                
             }
         }
@@ -149,7 +150,7 @@ bool GSM::configureServerConnection(string url)
     m = sendCommand("AT^SICS=0,conType,GPRS0",1);    
     if (m->getMessage(0).find("OK") != string::npos)
     {        
-        m = sendCommand("AT^SICS=0,apn,goto.virginmobile.uk",1);               
+        m = sendCommand("AT^SICS=0,apn,EEM2M",1);               
         if (m->getMessage(0).find("OK") != string::npos)
         {             
             m = sendCommand("AT^SISS=0,srvType,http",1);                       
@@ -158,7 +159,7 @@ bool GSM::configureServerConnection(string url)
                 m = sendCommand("AT^SISS=0,conId,0",1);                                
                 if (m->getMessage(0).find("OK") != string::npos)
                 {                                        
-                    m = sendCommand("AT^SISS=0,address,"+url+":80",1);                                     
+                    m = sendCommand("AT^SISS=0,address,"+url,1);                                     
                     if (m->getMessage(0).find("OK") != string::npos)
                     {
                         connectedUrl = url;
@@ -179,8 +180,8 @@ bool GSM::connectToServer()
     if (serverConfigured)
     {
         ptr_GSM_msg m;
-        m = sendCommand("AT^SISO=0",1);
-        //util::printDebug("reply from connect: " + m->getMessage(0));
+        m = sendCommand("AT^SISO=0",2);
+      //  util::printDebug("reply from connect: " + m->getMessage(0));
         if (m->getMessage(0).find("OK") != string::npos)
         {
             connectedToServer = true;
@@ -190,6 +191,10 @@ bool GSM::connectToServer()
             connectedToServer = false;
         }
         return connectedToServer;
+    }
+    else
+    {
+        return false;
     }
 }
 
@@ -206,22 +211,21 @@ string GSM::httpPost(string url, string data)
 {
     waitForLongOperationToFinish();
     longOperationInProg = true;    
-    if (!connectToServer())
+    if (!connectedToServer)
     {
-        longOperationInProg = false;  
-        util::printDebug("not conn to server");      
-        return "NOT_CONNECTED_TO_SERVER";
-    }
+        connectToServer();
+        wait(2);
+    }   
     ptr_GSM_msg m;
-    m = sendCommand("AT^HTTPCMD=0,POST,"+connectedUrl+url+","+util::ToString(data.length())+",'text/plain'");
-    if (m->getMessage() == "CONNECT")
-    {
-        m = sendCommand(data,2);
-        if (m->getMessage(1) == "OK")
-        {
-            disconnectFromServer();
+    string str("AT^HTTPCMD=0,POST,"+connectedUrl+url+","+util::ToString(data.length())+",\"application/x-www-form-urlencoded\"");   
+    m = sendCommand(str);
+    if (m->getMessage(0).find("CONNECT") != string::npos)
+    {     
+        m = sendCommand(data,3);
+        if (m->getMessage(1).find("OK") != string::npos)
+        {          
             longOperationInProg = false;           
-            return m->getMessage();
+            return m->getMessage(0);
         }
     }    
     disconnectFromServer();
@@ -317,7 +321,21 @@ ptr_GSM_msg GSM::sendCommand(string c, int numResults)
             osEvent e = sendCommandReplyQueue.get();            
             if (e.status == osEventMessage)
             {                
-                returnMessage->addMessage(((GSMMessage*) e.value.p)->getMessage());
+                string* m = ((string*) e.value.p);
+                returnMessage->addMessage(*m);
+                if ((*m).find("ERROR") != string::npos)
+                {
+                    //Clear remaining requests because of error error.
+                    for (int i = rxed; i < numResults; i++)
+                    {
+                        returnMessage->addMessage("ERR_CLEARED");
+                    }
+                    mRespWaiting.lock();
+                    respWaiting -= (numResults - rxed);
+                    mRespWaiting.unlock();
+                    rxed = numResults;
+                }
+                delete m;
             }                        
             timeout = false;            
             timeoutTimer.start(TIMEOUT * 1000);            

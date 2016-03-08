@@ -41,7 +41,7 @@ class GSM {
     Queue<GSMMessage,respLength> sendQueue;
     bool waitingForReply;
     
-    Queue<GSMMessage,respLength> sendCommandReplyQueue;
+    Queue<string,respLength> sendCommandReplyQueue;
     int respWaiting;
     int respFront;
     int replyFor;

@@ -46,6 +46,7 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
         //Ensure Baud Rate is set to 9600
         ptr_GSM_msg m;
         m = modules::gsm->sendCommand("AT+IPR=9600",2);
+       // util::printDebug("reply here: "  + m->getMessage(0));
         if (m->getMessage(1).find("OK") != string::npos)
         {
             util::printInfo("Set GSM Baud rate to 9600");
@@ -77,12 +78,37 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
         {
             util::printError("Unable to enable error reporting from GSM");
         }
-         
+        
+        /* Wait for device to register with network */
+        bool success = false;
+        util::printInfo("Waiting for device to register with mobile network...");
+        for (int i = 0; i < 10; i++)
+        {
+            m = modules::gsm->sendCommand("AT+CREG?",2);            
+            if (m->getMessage(1).find("OK") != string::npos)
+            {                
+                if (m->getMessage(0).find("0,1") != string::npos)
+                {
+                    success = true;
+                    break;
+                }
+            }            
+            Thread::wait(1000);
+        } 
+        
+        if (success)
+        {
+            util::printInfo("Device registered with network");
+        }
+        else
+        {
+            util::printError("Device not registered with network");
+        }
          
         /* Device Info */
         string deviceId = "0";
-        string serverUrl = "http://lono-rain.appspot.com";
-        
+        string serverUrl = "http://lono-rain.appspot.com:80";
+                
         /* Configure connection to server */
         if (!(modules::gsm->configureServerConnection(serverUrl)))
         {
@@ -93,19 +119,14 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
         }        
         util::printInfo("Server connection successfully configured to "+serverUrl);
         
+        wait(5);
+        
         /* Register with the server */
-        if (modules::gsm->httpPost("/reg","id:"+deviceId) == "Done")
-        {
-            util::printInfo("Successfully registered with server.");
-            util::printInfo("Device ID = "+deviceId);
-        }
-        else
-        {
-            /* Setting mode to GSM failed */
-            util::printError("Could not register with server.");
-            util::printInfo("Done");
-            return;
-        }          
+        string datetime = modules::gsm->httpPost("/reg","id="+util::ToString(deviceId));
+        //util::printDebug("returned date " + datetime);
+        util::setTime(datetime.substr(0,10), datetime.substr(11,8));
+        util::printInfo("Successfully registered with server.");
+        util::printInfo("Device ID = "+deviceId);       
     }
     mode = t;
     util::printInfo("Done");
@@ -114,11 +135,33 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
 void Wireless::sendReadings()
 {
     Wireless::Reading* r;
+    string data;
+    string time;
+    int interval;
+    float value;
     while(1)
     {
-        r = modules::pressureSensor->getNextReading();
+         /* Wait for new reading from queue */
+         r = modules::pressureSensor->getNextReading();            
+            
+        /* Save to .csv file on SD Card */
         modules::sdCard->writeReading(*r);
-        util::printInfo("Reading at: " + r->time + " for interval " + util::ToString((r->interval)/1000) + "s is " + util::ToString(r->value)+"mm");        
+        
+        /* Get reading info */
+        time = r->time;
+        interval = (r->interval)/1000;
+        value = r->value;
+        
+        /* Print reading to PC/Log */
+        util::printInfo("Reading at: " + time + " for interval " + util::ToString(interval) + "s is " + util::ToString(value)+"mm");
+        
+        /* TX reading */
+        if (mode == GSM)
+        {                  
+            data = "id=0&reading="+util::ToString(value)+"&interval="+util::ToString(interval)+"&time="+time;            
+            modules::gsm->httpPost("/send", data);
+            util::printInfo("TX to server was successful");
+        }
     }
 }
 

@@ -22,6 +22,9 @@ class SDCard
         Calibrate readCalibrateData();
         void writeCalibrateData(Calibrate c);
         
+        Timing readTimingData();
+        void writeTimingData(Timing t);
+        
         bool fileExists(char *filename);
         
         string readLog();

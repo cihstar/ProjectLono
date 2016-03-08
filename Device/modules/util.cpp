@@ -15,6 +15,11 @@ namespace util
         return atoi(s.c_str());
     }
     
+    uint32_t ToUintL(std::string s)
+    {
+        return strtoul(s.c_str(),NULL,0);
+    }
+    
     float ToFloat(std::string s)
     {
         return atof(s.c_str());

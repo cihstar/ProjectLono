@@ -47,10 +47,6 @@ void PCSerial::rxTask()
             {
                 util::printInfo("todo: Write Help.");
             }
-            else if (mType == "setRainMode")
-            {
-                util::printInfo("Setting rain mode to " + mIns[0]);
-            }
             else if (mType == "debug")
             {
                 if (mIns[0] != "0")
@@ -111,6 +107,14 @@ void PCSerial::rxTask()
                 Calibrate c = {util::ToUint(mIns[0]), util::ToUint(mIns[1]), util::ToFloat(mIns[2])};
                 modules::sdCard->writeCalibrateData(c);
                 modules::pressureSensor->calibrate(c);
+                modules::pressureSensor->start();
+            }
+            else if (mType == "setTiming")
+            {
+                modules::pressureSensor->stopTimer();
+                Timing t = {util::ToUintL(mIns[0]), util::ToUint(mIns[1]), util::ToUint(mIns[2])};
+                modules::sdCard->writeTimingData(t);
+                modules::pressureSensor->setTiming(t);
                 modules::pressureSensor->start();
             }
             else if (mType == "setWirelessMode")

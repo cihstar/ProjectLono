@@ -11,6 +11,7 @@
 #include "util.h"
 #include "modules.h"
 #include "Dimensions.h"
+#include "Commands.h"
 
 SDFileSystem sd(p5, p6, p7, p8, "sd");
 
@@ -48,21 +49,25 @@ BatteryLevel* modules::battery;
 GSM* modules::gsm;
 XBEE* modules::xbee;
 
+//#define WATCHDOG
+
 /*** Main Function - Initialise Everything! ***/
 int main() {  
        
-    /* Watchdog Setup */
-    RtosTimer watchdogTimer(timerTask, osTimerPeriodic);
-    wdt.kick(10.0); //set to 10 seconds
-    watchdogTimer.start(8000);
     bool startedFromWatchdog = false;
-    if ((LPC_WDT->WDMOD >> 2) & 1)
-    {
-        startedFromWatchdog = true;
-    }     
-    
+    #ifdef WATCHDOG
+        /* Watchdog Setup */
+        RtosTimer watchdogTimer(timerTask, osTimerPeriodic);
+        wdt.kick(10.0); //set to 10 seconds
+        watchdogTimer.start(8000);        
+        if ((LPC_WDT->WDMOD >> 2) & 1)
+        {
+            startedFromWatchdog = true;
+        }     
+    #endif
     /* Initialise PC Serial Link */
     modules::pc = new PCSerial(USB_SERIAL_TX, USB_SERIAL_RX, 128);
+    buildCommandList();
     
     /* Init SD Card */
     modules::sdCard = new SDCard(SD_MOSI, SD_MISO, SD_CLK, SD_CS);
@@ -96,7 +101,27 @@ int main() {
     
     /* Init Pressure Sensor */
     modules::pressureSensor = new PressureSensor(P_SENSE_OUT, P_SENSE_SLEEP);
-    util::printInfo("Pressure Sensor Initialised");
+    util::printInfo("Pressure Sensor Initialised");    
+        
+    /* Threads in various objects will now be running */            
+    
+    /* Enable PC input */
+    modules::pc->setEnableInput(true);
+    
+    /* Start pressure sensor readings */    
+    Dimensions d = modules::sdCard->readDimensions();
+    modules::pressureSensor->setDimensions(d);  
+     
+    Calibrate c = modules::sdCard->readCalibrateData();
+    modules::pressureSensor->calibrate(c);
+        
+    Timing t = modules::sdCard->readTimingData();
+    modules::pressureSensor->setTiming(t);    
+    
+    modules::pressureSensor->start();    
+    
+    /* And run UI LCD/Buttons in Main Thread */
+    modules::ui->showMenu();  
     
     /* Finish Boot up Info Printing */
     util::printInfo("System Time -> " + util::getTimeStamp());
@@ -104,39 +129,8 @@ int main() {
     util::printDebug("Debug Mode Enabled");  
     util::printInfo("Type help for list of commands");  
     util::printBreak();
-        
-    /* Threads in various objects will now be running */
-    /* Set up readings */
     
-    modules::pc->setEnableInput(true);
-    
-    /* Start pressure sensor readings */    
-    Dimensions d = modules::sdCard->readDimensions();
-    
-    util::printDebug("Read Following Dimensions data from SD Card:");
-    util::printDebug(util::ToString(d.tubeRadius));
-    util::printDebug(util::ToString(d.funnelRadius));
-    util::printDebug(util::ToString(d.outTubeRadius));
-    util::printDebug(util::ToString(d.outTubeWall));
-    util::printDebug(util::ToString(d.pressureSensorTubeRadius));
-       
-    modules::pressureSensor->setDimensions(d);  
-     
-    Calibrate c = modules::sdCard->readCalibrateData();
-    
-    util::printDebug("Read Following Calibrate data from SD Card:");
-    util::printDebug(util::ToString(c.fullAdc));
-    util::printDebug(util::ToString(c.emptyAdc));
-    util::printDebug(util::ToString(c.fullHeight));
-    
-    modules::pressureSensor->calibrate(c);
-    modules::pressureSensor->setTiming(10000, 10, 100);
-    modules::pressureSensor->start();    
-    
-    /* And run UI LCD/Buttons in Main Thread */
-    //modules::ui->showMenu();  
-    
-    /* Setup is now done. Run sendReadings() to process readings and tx them as they arrive
+     /* Setup is now done. Run sendReadings() to process readings and tx them as they arrive
        while(1) so this loop should never exit. */   
-    Wireless::sendReadings();         
+    Wireless::sendReadings();
 }

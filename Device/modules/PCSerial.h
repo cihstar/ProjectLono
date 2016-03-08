@@ -4,8 +4,9 @@
 #include "mbed.h"
 #include "rtos.h"
 #include "util.h"
-#include <string>
+#include "PCCommand.h"
 
+#include <string>
 #include <vector>
 
 class PCMessage{
@@ -40,6 +41,9 @@ class PCSerial{
         void print(string s);
         Queue<PCMessage, 8> messageQueue;
         void setEnableInput(bool b);
+        void addCommand(PCCommand c);
+        bool getGsmMode();
+        void setGsmMode(bool b);
     private:
         Serial ser;
         void rxByte();
@@ -58,6 +62,8 @@ class PCSerial{
         PCMessage newm;    
         bool enableInput;
         bool messageStarted;
+        
+        vector<PCCommand> commandList;
 };
 
 #endif

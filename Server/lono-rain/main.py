@@ -35,7 +35,7 @@ class TestPageHandler(webapp2.RequestHandler):
 class RegisterPageHander(webapp2.RequestHandler):
     def post(self):
         self.response.headers.add_header("Access-Control-Allow-Origin","*")
-        id = self.request.get("id")
+        id = self.request.get("id")        
         if id == "":
             self.response.write("No ID")
         else:
@@ -49,7 +49,7 @@ class RegisterPageHander(webapp2.RequestHandler):
             else:
                 device.lastSeen = datetime.datetime.now()
                 device.put()
-            self.response.write(datetime.datetime.now()) 
+            self.response.write(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")) 
 
 class NewReadingPageHandler(webapp2.RequestHandler):
     def post(self):
@@ -71,7 +71,7 @@ class NewReadingPageHandler(webapp2.RequestHandler):
         auth = tweepy.OAuthHandler("sbaQ8u5zHGZxYKk2bw3YzBanV", "91wZog7E7RsVsYBE87JfZCKyqMLeWlAv3XoJWbqLoMLwDuwTsr")                    
         auth.set_access_token("704310511677087745-Y31U8td767SJSrQ6ZbgfTJAaUugremV", "6rP6RtDGTqbfykOjDlr8A5xADeZK69kkm71COT6IMeSdV")
         api = tweepy.API(auth)
-        api.update_status('(Test) Current Rain Fall rate: ' + str(float(reading) * ((60*60)/int(interval)))+"mm/h")
+       # api.update_status('(Test) Current Rain Fall rate: ' + str(float(reading) * ((60*60)/int(interval)))+"mm/h")
         
         self.response.write("Done")
 

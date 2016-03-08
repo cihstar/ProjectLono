@@ -16,12 +16,13 @@ dbuttons{b1,b2,b3}, reset(rst), menuActive(false), activeMenuItem(-1), timer(tim
     dbuttons[1].setSampleFrequency();
     dbuttons[2].setSampleFrequency();
     
-    menuItems.push_back("Stauts");
+    
+    menuItems.push_back("Will is gay");
+    menuItems.push_back("Status");
     menuItems.push_back("History");
     menuItems.push_back("Battery");
     menuItems.push_back("Wireless");
-    menuItems.push_back("Pressure Sensor");
-    menuItems.push_back("Hi Jess");        
+    menuItems.push_back("Pressure Sensor");         
     
     timer.start(SCREEN_TIMEOUT);
 }
@@ -76,8 +77,7 @@ void UI::writeText(string line1, string line2)
 }
 
 void UI::menuUp()
-{
-    util::printDebug("Active: " + util::ToString(activeMenuItem) + " Size: " + util::ToString(menuItems.size()));
+{    
     if ( (activeMenuItem + 1) < (int) menuItems.size())
     {
         activeMenuItem++;
@@ -86,8 +86,7 @@ void UI::menuUp()
 }
 
 void UI::menuDown()
-{
-    util::printDebug("Active: " + util::ToString(activeMenuItem) + " Size: " + util::ToString(menuItems.size()));
+{    
     if ( (activeMenuItem - 1) > -1)
     {
         activeMenuItem--;
@@ -97,8 +96,7 @@ void UI::menuDown()
 
 void UI::button1Push()
 {            
-    timer.start(SCREEN_TIMEOUT);        
-    util::printDebug("Button 1 Pushed!");   
+    timer.start(SCREEN_TIMEOUT);            
     if (!menuActive)
     {
         showMenu();
@@ -111,8 +109,7 @@ void UI::button1Push()
 
 void UI::button2Push()
 {
-    timer.start(SCREEN_TIMEOUT);
-    util::printDebug("Button 2 Pushed!");
+    timer.start(SCREEN_TIMEOUT);   
     if (!menuActive)
     {
         showMenu();
@@ -131,8 +128,7 @@ void UI::button2Push()
 
 void UI::button3Push()
 {
-    timer.start(SCREEN_TIMEOUT);
-    util::printDebug("Button 3 Pushed!");
+    timer.start(SCREEN_TIMEOUT);    
     if (!menuActive)
     {
         showMenu();

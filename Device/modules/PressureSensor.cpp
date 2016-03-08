@@ -5,31 +5,42 @@
 #include <math.h>
 
 PressureSensor::PressureSensor(PinName out, PinName sleep) :
-sensor(out), sleepPin(sleep), timer(&PressureSensor::timerStarter, this, osPriorityNormal,2048), samples(0),
+sensor(out), sleepPin(sleep), senseThread(&PressureSensor::threadStarter, this, osPriorityNormal,1648), samples(0),
 totalRain(0), emptying(false), lasth(0), sampsPerTx(0), readsPerSamp(0), tubeArea(0), 
 outTubeArea(0), funnelRatio(0), startEmptyHeight(0), endEmptyHeight(0), calibration(0.0f),
-offset(0), active(false), lastReading("None"), reading(0)
+offset(0), active(false), lastReading("None"), reading(0), timer(timerStarter, osTimerPeriodic, this)
 {
 }
 
 PressureSensor::~PressureSensor(){}
 
-void PressureSensor::timerStarter(void const* p)
+void PressureSensor::timerStarter(void const *p)
 {
     PressureSensor *instance = (PressureSensor*)p;
     instance->timerTask();
 }
 
-int PressureSensor::getTxInterval()
+void PressureSensor::timerTask()
+{    
+    senseThread.signal_set(SAMPLE);
+}
+
+void PressureSensor::threadStarter(void const* p)
+{
+    PressureSensor *instance = (PressureSensor*)p;
+    instance->sensorTask();
+}
+
+uint32_t PressureSensor::getTxInterval()
 {
     return sampsPerTx * sampInterval;
 }
 
-void PressureSensor::setTiming(int tTx, int tSamp, int reads)
+void PressureSensor::setTiming(Timing t)
 {
-    sampsPerTx = tTx / tSamp;
-    sampInterval = tSamp;
-    readsPerSamp = reads;
+    sampsPerTx = t.tx / t.samp;
+    sampInterval = t.samp;
+    readsPerSamp = t.reads;
 }
 
 void PressureSensor::start()
@@ -52,12 +63,19 @@ void PressureSensor::start()
     lasth = toHeight(read());
     samples = 0;        
     active = true;
+    timer.start(sampInterval);
     util::printInfo("Pressure Sensor Readings Started");
     util::printInfo("Tube Area: " + util::ToString(tubeArea) + " m^2");
     util::printInfo("Out Tube Area: " + util::ToString(outTubeArea) + " m^2");
     util::printInfo("Funnel Ratio: " + util::ToString(funnelRatio));
     util::printInfo("Calibration Factor: " + util::ToString(calibration));
     util::printInfo("Calibration Offset: " + util::ToString(offset));
+    
+    util::printInfo("Transmission of Data every " + util::ToString(getTxInterval()/1000) + "s");
+    util::printInfo("Sampling of Sensor every " + util::ToString(sampInterval) + "ms");
+    util::printInfo("ADC reads to average per sample: " + util::ToString(readsPerSamp));
+    
+    util::printInfo("Now sampling....");    
 }
 
 bool PressureSensor::getActive()
@@ -68,6 +86,7 @@ bool PressureSensor::getActive()
 void PressureSensor::stopTimer()
 {
     util::printInfo("Pressure Sensor Timer Stopped");    
+    timer.stop();
     active = false;
 }
 
@@ -120,7 +139,7 @@ void PressureSensor::wakeup()
 }
 
 
-void PressureSensor::timerTask()
+void PressureSensor::sensorTask()
 {   
    float h;
    float waterOut;
@@ -128,12 +147,12 @@ void PressureSensor::timerTask()
    string time;
     
     while(1)
-    {        
-        //printf("\r\nPressure Sensor Thread Used stack: %d\r\n", timer.used_stack());
+    {         
+               
         while(!active)
-        {            
-            Thread::wait(100);
-        }        
+        {                        
+            Thread::wait(1);
+        }                     
             
         wakeup();
         h = toHeight(read());   
@@ -165,23 +184,25 @@ void PressureSensor::timerTask()
         samples++;
         
         if (samples == sampsPerTx)
-        {                        
+        {         
+            DigitalOut test(p20);
+            test = 1;           
+            timer.stop();    
             reading = totalRain * funnelRatio;                          
             str = util::ToString(reading);                          
             lastReading = str;
             
             Wireless::Reading r = {reading, getTxInterval(), util::getTimeStamp()};
             readingQueue.put(&r);
+            wait(0.1);
             
             samples = 0;              
-            totalRain = 0;                                    
+            totalRain = 0;
+            timer.start(sampInterval);    
+            test = 0;                                
         }
-        sleep();         
-        Thread::wait(sampInterval);
-        
-        /***********************************************
-        ADD TIMER TOO, to set signal for thread to go
-        ************************************************/
+        sleep();
+        Thread::signal_wait(SAMPLE);        
     }
 }
 

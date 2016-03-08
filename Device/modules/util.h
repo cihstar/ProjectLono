@@ -15,6 +15,7 @@ namespace util
     void printNoLog(string s);
     int ToInt(std::string s);
     uint16_t ToUint(std::string s);
+    uint32_t ToUintL(std::string s);
     float ToFloat(std::string s);
 
     template <typename T>

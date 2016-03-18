@@ -67,6 +67,7 @@ int main() {
     #endif
     /* Initialise PC Serial Link */
     modules::pc = new PCSerial(USB_SERIAL_TX, USB_SERIAL_RX, 128);
+   // modules::pc = new PCSerial(XBEE_TX, XBEE_RX, 128);
     buildCommandList();
     
     /* Init SD Card */
@@ -91,7 +92,7 @@ int main() {
     /* Initialise Wireless Module */  
     Wireless::init();     
     modules::gsm = new GSM(GSM_TX, GSM_RTS, GSM_RX, GSM_CTS, GSM_RESET, GSM_TERM_ON);
-    modules::xbee = new XBEE();     
+    modules::xbee = new XBEE(XBEE_TX, XBEE_RX);         
     Wireless::setConnectionMode(Wireless::GSM);
     util::printInfo("Wirelesss Module initialised");                   
        
@@ -130,7 +131,17 @@ int main() {
     /* And run UI LCD/Buttons in Main Thread */
     modules::ui->showMenu();  
     
-     /* Setup is now done. Run sendReadings() to process readings and tx them as they arrive
-       while(1) so this loop should never exit. */   
-    Wireless::sendReadings();
+      
+    /* Setup now complete. Run main loop tasks */  
+    while(1)
+    {
+        /* Process incoming messages from the PC */
+        modules::pc->rxTask();
+        
+        /* Transmit rainfall readings via selected mode */
+        Wireless::sendReadings();
+        
+        /* Wait */
+        Thread::wait(10);
+    }
 }

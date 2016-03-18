@@ -32,13 +32,13 @@ namespace util
         modules::pc->print(str);
     }
 
+    // Don't log debug to sd card
     void printDebug(string s)
     {        
         #ifdef DEBUG
             if (modules::pc->getDebug())
             {                
                 string str = "Debug: "+s;
-                modules::sdCard->writeToLog(str);
                 modules::pc->print(str);
             }
         #endif

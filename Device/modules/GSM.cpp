@@ -41,8 +41,7 @@ void GSM::rxTask()
     int i;
     char c;
     while(1)
-    {
-      //  printf("\r\GSM RX Thread Used stack: %d\r\n", rxThread.used_stack());
+    {      
         Thread::signal_wait(FWS_MESSAGE_READY);  
         j = messagesAvailable;
         for (i = 0; i < j; i++)
@@ -92,7 +91,13 @@ void GSM::rxTask()
                     util::printInfo("GSM Powered On");
                     powerOn = true;     
                     dontPrint = true;              
-                }    
+                }  
+                
+                if (message.find("closed the connection") != string::npos)
+                {
+                    util::printInfo("Server closed connection");
+                    connectedToServer = false;
+                }  
             
                 if (waitingForReply)
                 {
@@ -143,8 +148,7 @@ void GSM::txTask()
 
 bool GSM::configureServerConnection(string url)
 {    
-    waitForLongOperationToFinish();    
-    longOperationInProg = true;
+    connectedToServer = false;     
     ptr_GSM_msg m;    
     m = sendCommand("AT^SICS=0,conType,GPRS0",1);    
     if (m->getMessage(0).find("OK") != string::npos)
@@ -162,8 +166,7 @@ bool GSM::configureServerConnection(string url)
                     if (m->getMessage(0).find("OK") != string::npos)
                     {
                         connectedUrl = url;
-                        serverConfigured = true;
-                        longOperationInProg = false;
+                        serverConfigured = true;                        
                         return true;
                     }                    
                 }
@@ -174,26 +177,32 @@ bool GSM::configureServerConnection(string url)
     return false;
 }
 
-bool GSM::connectToServer()
+bool GSM::connectToServer(string url)
 {
-    if (serverConfigured)
+    if (!connectedToServer || (connectedToServer && connectedUrl != url))
     {
+        /* Configure Connection */        
+        configureServerConnection(url);                 
+        wait(3);        
+        /* And connect to server */
         ptr_GSM_msg m;
-        m = sendCommand("AT^SISO=0",2);
-      //  util::printDebug("reply from connect: " + m->getMessage(0));
+        m = sendCommand("AT^SISO=0",2);      
         if (m->getMessage(0).find("OK") != string::npos)
         {
-            connectedToServer = true;
+            /* Success! */         
+            connectedToServer = true;            
+            return true;
         }
         else
         {
+            /* Fail */
             connectedToServer = false;
+            return false;
         }
-        return connectedToServer;
     }
     else
-    {
-        return false;
+    {      
+        return true;
     }
 }
 
@@ -206,17 +215,18 @@ bool GSM::disconnectFromServer()
     }
 }
 
-string GSM::httpPost(string url, string data)
+string GSM::httpPost(string url1, string url2, string data)
 {
     waitForLongOperationToFinish();
-    longOperationInProg = true;    
-    if (!connectedToServer)
+    longOperationInProg = true;            
+    if (!connectToServer(url1))
     {
-        connectToServer();
-        wait(2);
-    }   
+        longOperationInProg = false;
+        return "ERROR";
+    }          
+    wait(2); 
     ptr_GSM_msg m;
-    string str("AT^HTTPCMD=0,POST,"+connectedUrl+url+","+util::ToString(data.length())+",\"application/x-www-form-urlencoded\"");   
+    string str("AT^HTTPCMD=0,POST,"+url1+url2+","+util::ToString(data.length())+",\"application/x-www-form-urlencoded\"");   
     m = sendCommand(str);
     if (m->getMessage(0).find("CONNECT") != string::npos)
     {     
@@ -232,18 +242,18 @@ string GSM::httpPost(string url, string data)
     return "ERROR";
 }
 
-string GSM::httpGet(string url)
+string GSM::httpGet(string url1, string url2)
 {
     waitForLongOperationToFinish();
     longOperationInProg = true;
-    connectToServer();
-    if (!connectedToServer)
-    {        
+    if (!connectToServer(url1))
+    {
         longOperationInProg = false;
         return "ERROR";
     }
+    wait(2);
     ptr_GSM_msg m;
-    m = sendCommand("AT^HTTPCMD=0,GET,"+connectedUrl+url,3);
+    m = sendCommand("AT^HTTPCMD=0,GET,"+url1+url2,3);
     if (m->getMessage(0) == "CONNECT")
     {
         if (m->getMessage(2) == "OK")
@@ -280,11 +290,9 @@ ptr_GSM_msg GSM::sendCommand(string c, int numResults)
         returnMessage->addMessage("PowerOff");
         return returnMessage;
     }
-    
-  //  util::printInfo("message before making obj: " + c);
+      
     GSMMessage toSend(c,1);
-    sendQueue.put(&toSend);
-  //  util::printInfo("Message in send command: " + toSend.getMessage(0));
+    sendQueue.put(&toSend);  
     
     //Wait for reply.
     mRespWaiting.lock();

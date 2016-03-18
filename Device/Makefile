@@ -82,4 +82,4 @@ all:
 	del $(PROJECT).elf $(PROJECT).hex $(PROJECT).map $(PROJECT).lst *.o *.d "modules\*.d" "modules\*.o" "SDFileSystem\*.d" "SDFileSystem\*.o" "SDFileSystem\FATFileSystem\*.d" "SDFileSystem\FATFileSystem\*.o" "SDFileSystem\FATFileSystem\ChaN\*.d" "SDFileSystem\FATFileSystem\ChaN\*.o"
 	@echo Moving bin to bin directory and copying to board
 	move "$(PROJECT).bin" "bin\$(PROJECT).bin"
-	copy "bin\$(PROJECT).bin" "G:\"
+	copy "bin\$(PROJECT).bin" "F:\"

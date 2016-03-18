@@ -14,8 +14,11 @@ void buildCommandList()
     PCCommand directMode("directMode", "Enable direct communications with device modules. Options: GSM for GSM module. Type DirectMode to deactivate.", directModeCmd, 1);
     modules::pc->addCommand(directMode);
     
-    PCCommand readPressure("readPressure", "Get current ADC reading from Presure Sensor.", readPressureCmd, 0);
-    modules::pc->addCommand(readPressure);
+    PCCommand readAdc("readAdc", "Get current ADC reading from Presure Sensor.", readAdcCmd, 0);
+    modules::pc->addCommand(readAdc);
+    
+    PCCommand adc("adc", "Continuously print ADC readings", adcCmd, 0);
+    modules::pc->addCommand(adc);
     
     PCCommand setDimensions("setDimensions", "Set the physical rain gauge dimensions. Usage (all in m): setDimensions tubeRadius funnelRadius outTubeRadius outTubeWal pressureSensorTubeRadius startEmptyHeight endEmptyHeight", setDimensionsCmd, 7);
     modules::pc->addCommand(setDimensions);
@@ -29,6 +32,17 @@ void buildCommandList()
     PCCommand setWirelessMode("setWirelessMode", "Set the Wireless TX mode of system. GSM, XBEE or NONE", setWirelessModeCmd, 1);
     modules::pc->addCommand(setWirelessMode);
     
+    PCCommand getHeight("getHeight", "Returns the current height of the water in the tube in m", getHeightCmd, 0);
+    modules::pc->addCommand(getHeight);
+    
+    PCCommand setFunnel("setFunnel", "Sets the funnel radius in m",setFunnelCmd, 1);
+    modules::pc->addCommand(setFunnel);
+    
+    PCCommand stop("stop", "Stop collecting readings", stopCmd, 0);
+    modules::pc->addCommand(stop);
+    
+    PCCommand start("start", "Start collecting readigs", startCmd, 0);
+    modules::pc->addCommand(start);
 }
 
 void debugCmd(vector<string> &mIns)
@@ -77,9 +91,36 @@ void directModeCmd(vector<string> &mIns)
     }
 }
 
-void readPressureCmd(vector<string> &mIns)
+void readAdcCmd(vector<string> &mIns)
 {
-    util::printInfo(util::ToString(modules::pressureSensor->read()));
+    int tAv = 30000;
+    int tSamp = 10;
+    
+    long unsigned int total = 0;
+    
+    for (int i = 0; i < (tAv / tSamp); i++)
+    {
+        total += modules::pressureSensor->read();
+        Thread::wait(tSamp);
+    }
+    
+    total /= (tAv/tSamp);
+    
+    util::printInfo(util::ToString(total));
+}
+
+void adcCmd(vector<string> &mIns)
+{
+    while(1)
+    {
+        util::printInfo(util::ToString(modules::pressureSensor->read()));
+        Thread::wait(500);
+    }
+}
+
+void getHeightCmd(vector<string> &mIns)
+{
+    util::printInfo(util::ToString(modules::pressureSensor->toHeight(modules::pressureSensor->read())));
 }
 
 void setDimensionsCmd(vector<string> &mIns)
@@ -127,4 +168,24 @@ void setWirelessModeCmd(vector<string> &mIns)
     {
         util::printError("Please select GSM, XBEE or None");
     }
+}
+
+void setFunnelCmd(vector<string> &mIns)
+{
+    modules::pressureSensor->stopTimer();
+    Dimensions d = modules::sdCard->readDimensions();
+    d.funnelRadius = util::ToFloat(mIns[0]);
+    modules::sdCard->writeDimensions(d);
+    modules::pressureSensor->setDimensions(d);  
+    modules::pressureSensor->start();  
+}
+
+void stopCmd(vector<string> &mIns)
+{
+    modules::pressureSensor->stopTimer();
+}
+
+void startCmd(vector<string> &mIns)
+{
+    modules::pressureSensor->start();
 }

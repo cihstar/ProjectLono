@@ -38,4 +38,7 @@
 
 #define BATTERY_LEVEL p16
 
+#define XBEE_TX p13
+#define XBEE_RX p14
+
 #endif

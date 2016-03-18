@@ -5,7 +5,7 @@
 #include <math.h>
 
 PressureSensor::PressureSensor(PinName out, PinName sleep) :
-sensor(out), sleepPin(sleep), senseThread(&PressureSensor::threadStarter, this, osPriorityNormal,1948), samples(0),
+sensor(out), sleepPin(sleep), senseThread(&PressureSensor::threadStarter, this, osPriorityNormal,2548), samples(0),
 totalRain(0), emptying(false), lasth(0), sampsPerTx(0), readsPerSamp(0), tubeArea(0), 
 outTubeArea(0), funnelRatio(0), startEmptyHeight(0), endEmptyHeight(0), calibration(0.0f),
 offset(0), active(false), lastReading("None"), reading(0), timer(timerStarter, osTimerPeriodic, this),
@@ -63,8 +63,8 @@ void PressureSensor::start()
     }
     
     /* Calculate equation constant */
-    equationConstant = sqrt(2 * pow(outTubeArea,2) * G) * (sampInterval / tubeArea);
-    
+    equationConstant = (sqrt(2 * pow(outTubeArea,2) * G) / tubeArea) * (sampInterval);
+    equationConstant /= 1000;    
     
     lasth = toHeight(read());
     samples = 0;        
@@ -76,6 +76,8 @@ void PressureSensor::start()
     util::printInfo("Funnel Ratio: " + util::ToString(funnelRatio));
     util::printInfo("Calibration Factor: " + util::ToString(calibration));
     util::printInfo("Calibration Offset: " + util::ToString(offset));
+    util::printInfo("Equation Constant: " + util::ToString(equationConstant));
+    util::printInfo("Self emptying starts at " + util::ToString(startEmptyHeight) +"m and ends at " + util::ToString(endEmptyHeight) + "m");
     
     util::printInfo("Transmission of Data every " + util::ToString(getTxInterval()/1000) + "s");
     util::printInfo("Sampling of Sensor every " + util::ToString(sampInterval) + "ms");
@@ -104,9 +106,9 @@ float PressureSensor::area(float r)
 void PressureSensor::setDimensions(Dimensions d)
 {
     outTubeArea = area(d.outTubeRadius);
-    float outTubeWallArea = area(d.outTubeWall) - outTubeArea;
+    float outTubeWallArea = area(d.outTubeRadius + d.outTubeWall) - outTubeArea;
     tubeArea = area(d.tubeRadius) - outTubeWallArea - area(d.pressureSensorTubeRadius);
-    funnelRatio = 1000 / (pow(d.funnelRadius,2) / pow(d.tubeRadius,2));
+    funnelRatio = tubeArea / (M_PI * pow(d.funnelRadius,2));
     startEmptyHeight = d.startEmptyHeight;
     endEmptyHeight = d.endEmptyHeight;        
 }
@@ -125,7 +127,7 @@ uint16_t PressureSensor::read()
     uint32_t adcRead = 0;
     for (int i = 0; i < readsPerSamp; i++)
     {
-        adcRead += (uint32_t) sensor.read_u16(); 
+        adcRead += (uint32_t) (sensor.read_u16() >> 8); //make 8 bit 
     }
     adcRead /= readsPerSamp;
     return (uint16_t) adcRead;
@@ -151,8 +153,21 @@ void PressureSensor::sensorTask()
 {   
    float h;
    float waterOut;
+   float deltah;
    string str;
-   string time;
+   string time;  
+   
+   int adc;
+   
+   float firstNegativeh;
+   int firstNegativeAdc;
+   float firsth = 0;
+   
+   int negativeDeltas = 0;    
+   int positiveDeltas = 0;
+   int zerodeltas = 0;
+   
+   bool emptyStoppedBeforeBottom = false;
     
     while(1)
     {         
@@ -166,7 +181,8 @@ void PressureSensor::sensorTask()
         wakeup();
         
         /* Read ADC and convert to height */
-        h = toHeight(read());   
+        adc = read();
+        h = toHeight(adc);       
         
         /* Constrain height to be > 0 */
         if (h < 0)
@@ -174,60 +190,121 @@ void PressureSensor::sensorTask()
             h = 0;
         }
         
+        deltah = h - lasth;        
+        
+        /* Keep track of consecutive falls in level */
+        if (deltah < 0)
+        {
+            if (negativeDeltas == 0)
+            {
+                firstNegativeh = h;
+                firstNegativeAdc = adc;
+            }
+           negativeDeltas++;
+           positiveDeltas = 0;
+           zerodeltas = 0;
+        }
+        
+        
+        else if (deltah > 0)
+        {
+            positiveDeltas++;
+            negativeDeltas = 0;
+            zerodeltas = 0;
+        }
+        
+        else
+        {
+            zerodeltas++;
+            negativeDeltas = 0;
+            positiveDeltas = 0;
+        }
+        
+        //util::printDebug("0: "+ util::ToString(zerodeltas)+"  -: "+util::ToString(negativeDeltas)+"  +: "+util::ToString(positiveDeltas));
+        
+        /* Save */
+        lasth = h;        
+        
+        
         /* Check if tube will be emptying or not */
         if (emptying)
         {
-            if (h <= endEmptyHeight)
-            {                                                        
+            if ( positiveDeltas == 5 || zerodeltas == 5 )
+            {                                                             
                 emptying = false;
+                if (h > endEmptyHeight)
+                {
+                    util::printDebug("Tube Stopped Emptying not at bottom");   
+                    emptyStoppedBeforeBottom = true;
+                }
+                else
+                {
+                    util::printDebug("Tube Stopped Emptying");   
+                    emptyStoppedBeforeBottom = false;
+                }
             }
         }
         else
         {
-            if (h >= startEmptyHeight)
-            {                
+            if (negativeDeltas == 3)
+            {                       
+                //5 consecutive -ve deltas, probably emptying                    
                 emptying = true;
+                
+                util::printDebug("Tube Emptying");
+                
+                /* And recalibrate? */
+                if (!emptyStoppedBeforeBottom)
+                {
+                    if ((firstNegativeh < (startEmptyHeight-0.002) || (firstNegativeh > (startEmptyHeight+0.002))))
+                    {
+                        //calibration = startEmptyHeight / (firstNegativeAdc - offset);
+                        util::printDebug("recal: thinks h is " + util::ToString(firstNegativeh) + " fullADC now = "+util::ToString(firstNegativeAdc));
+                        samples = 0;
+                        totalRain = 0;
+                    }
+                }
             }
-        }
-        //printf("Y");
-        
-        /* Calculate ammount of water that has left the tube */        
-        if (emptying)
-        {            
-            waterOut = sqrt(h) * equationConstant;
-        }    
-        else
-        {
-            waterOut = 0;
-        }
+        }       
         
         /* Caclulate total rain in this sample and accumulate */
-        totalRain += h + waterOut - lasth;
+        /* Ignore if emptying */
+        if(!emptying)
+        {         
+            if (samples == 0) 
+            {
+                firsth = h;
+            }              
+                
+            samples++;
         
-        /* Save */
-        lasth = h;
-        samples++;
-        
-        /* Time to tx sample */
-        if (samples == sampsPerTx)
-        {       
-            /* Stop timer while processing */             
-            timer.stop();    
-            
-            /* Convert height in tube to rainfall in mm */
-            reading = totalRain * funnelRatio;                          
-            str = util::ToString(reading);                          
-            lastReading = str;
-            
-            /* Send reading */
-            Wireless::Reading r = {reading, getTxInterval(), util::getTimeStamp()};
-            readingQueue.put(&r);
-            wait(0.1);
-            
-            /* Reset for next reading */
-            samples = 0;              
-            totalRain = 0;
-            timer.start(sampInterval);                                               
+            /* Time to tx sample */
+            if (samples == sampsPerTx)
+            {
+                /* Last sample */
+                totalRain = h - firsth;
+                       
+                /* Stop timer while processing */             
+                timer.stop();                
+                /* Convert height in tube to rainfall in mm */
+                reading = (totalRain * funnelRatio) * 1000;  
+                if (reading < 0)
+                {
+                    reading = 0;
+                }                        
+                str = util::ToString(reading);                          
+                lastReading = str;
+                
+                /* Send reading */
+                Wireless::Reading r = {reading, getTxInterval(), util::getTimeStamp()};
+                readingQueue.put(&r);
+                wait(1);
+                
+                /* Reset for next reading */
+                samples = 0;              
+                totalRain = 0;
+                timer.start(sampInterval);                                               
+            }
         }
         
         /* Turn off 5V regulator */
@@ -240,13 +317,13 @@ void PressureSensor::sensorTask()
 
 Wireless::Reading* PressureSensor::getNextReading()
 {
-    osEvent e = readingQueue.get();
+    osEvent e = readingQueue.get(10);
     if (e.status == osEventMessage)
     {
         return (Wireless::Reading*)e.value.p;        
     }   
+    return NULL;
 }
-
 
 string PressureSensor::getLastReading()
 {

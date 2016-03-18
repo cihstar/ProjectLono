@@ -1,8 +1,6 @@
 #include "SDCard.h"
 #include "util.h"
 
-//AS PER: http://www.tayloredge.com/reference/Interface/SDPINOUT.pdf
-
 SDCard::SDCard(PinName a, PinName b, PinName c, PinName d):
 active(true)
 {      
@@ -92,7 +90,7 @@ void SDCard::writeReading(Wireless::Reading r)
 }
 
 Dimensions SDCard::readDimensions()
-{        
+{ 
     Dimensions ret = {0,0,0,0,0,0,0};
     if (active)
     {
@@ -132,6 +130,10 @@ Dimensions SDCard::readDimensions()
                     
         Dimensions d= {vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6] };
         return d;
+    }
+    else
+    {
+        return {0.01, 0.15, 0.003, 0.0015, 0.0045, 0.198, 0.005};
     }
     return ret;
 }
@@ -210,6 +212,10 @@ Calibrate SDCard::readCalibrateData()
         Calibrate d= {vals[0], vals[1], full};
         return d;
     }
+    else
+    {
+        return {200, 0, 0.228};
+    }
     return ret;
 }
 
@@ -281,6 +287,10 @@ Timing SDCard::readTimingData()
             
         Timing d= {val, vals[0], vals[1]};
         return d;
+    }
+    else
+    {
+        return {10000, 10, 100};
     }
     return ret;
 }

@@ -30,6 +30,7 @@ class PressureSensor
         bool getActive();
         string getLastReading();
         uint32_t getTxInterval();
+        float toHeight( uint16_t adcVal);
         Wireless::Reading* getNextReading();        
         
     private:
@@ -42,8 +43,7 @@ class PressureSensor
         RtosTimer timer;
         void timerTask();    
         static void timerStarter(void const *p);
-        
-        float toHeight( uint16_t adcVal);
+
         float calcTubeOut(float height);
         
         bool active;

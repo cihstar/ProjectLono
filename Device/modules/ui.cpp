@@ -15,9 +15,7 @@ dbuttons{b1,b2,b3}, reset(rst), menuActive(false), activeMenuItem(-1), timer(tim
     dbuttons[0].setSampleFrequency();
     dbuttons[1].setSampleFrequency();
     dbuttons[2].setSampleFrequency();
-    
-    
-    menuItems.push_back("Will is gay");
+        
     menuItems.push_back("Status");
     menuItems.push_back("History");
     menuItems.push_back("Battery");

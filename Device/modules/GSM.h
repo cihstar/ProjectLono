@@ -17,8 +17,8 @@ class GSM {
     ~GSM();
     ptr_GSM_msg sendCommand(string c, int numResults=1);
     void setPrint(bool p);    
-    string httpPost(string url, string data);
-    string httpGet(string url);
+    string httpPost(string url1, string url2, string data);
+    string httpGet(string url1, string url2);
     bool configureServerConnection(string url);
     void timeoutFunction();
     void sendCommandNoReply(string cmd);    
@@ -50,7 +50,7 @@ class GSM {
     
     string connectedUrl;
     
-    bool connectToServer();
+    bool connectToServer(string url);
     bool disconnectFromServer();
     bool connectedToServer;
     bool serverConfigured;

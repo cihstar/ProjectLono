@@ -1,3 +1,19 @@
+/********************************************************************************
+
+   Lono Rain Gauge | Wireless.cpp | Chris Holbrow
+   
+   ----------------------------------------------------------------------------
+
+   Contains functions dealing with the transmissions of data from the device
+   to remote server, acting as an abstraction layer for other modules to access
+   wireless transmission, independent of mode selected.
+   Current modes:
+        = GSM  - Using GSM mobile network to communicate to server via HTTP
+        = XBEE - Uses Zigbee RF protocol to transmit to a remote basestation
+        = NONE - None selected, just logs to SD Card and nothing else        
+        
+**********************************************************************************/
+
 #include "Wireless.h"
 #include "util.h"
 #include "pindef.h"
@@ -12,6 +28,7 @@ void Wireless::init()
 
 void Wireless::setConnectionMode(Wireless::ConnectionType t)
 {
+    string deviceId = "0";
     if (t == mode)
     {
         //No change
@@ -79,6 +96,17 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
             util::printError("Unable to enable error reporting from GSM");
         }
         
+        /* Read SMS in text mode */
+        m = modules::gsm->sendCommand("AT+CMGF=1");
+        if (m->getMessage(0).find("OK") != string::npos)
+        {
+            util::printInfo("SMS Text Mode enabled");                        
+        }
+        else
+        {
+            util::printError("Unable to set SMS mode to text");
+        }
+        
         /* Wait for device to register with network */
         bool success = false;
         util::printInfo("Waiting for device to register with mobile network...");
@@ -105,25 +133,10 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
             util::printError("Device not registered with network");
             return;
         }
-         
-        /* Device Info */
-        string deviceId = "0";
-        string serverUrl = "http://lono-rain.appspot.com:80";
-                
-        /* Configure connection to server */
-        if (!(modules::gsm->configureServerConnection(serverUrl)))
-        {
-            /* Failed */
-            util::printError("Unable to configure server connection for URL = "+serverUrl);
-            util::printInfo("Done");
-            return;
-        }        
-        util::printInfo("Server connection successfully configured to "+serverUrl);
-        util::printInfo("Connecting to server...");
-        wait(5);
         
         /* Register with the server */
-        string datetime = modules::gsm->httpPost("/reg","id="+util::ToString(deviceId));
+        util::printInfo("Connecting to server...");
+        string datetime = modules::gsm->httpPost("http://lono-rain.appspot.com:80","/reg","id="+util::ToString(deviceId));
         if (datetime.length() == 20)
         {
             util::setTime(datetime.substr(0,10), datetime.substr(11,8));
@@ -135,6 +148,51 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
             util::printError("Unable to register with server.");
             return;
         }       
+    }
+    else if (t == Wireless::XBEE)
+    {
+        /* Set up Xbee */
+        string reply;
+        bool success = false;
+        util::printInfo("Attempting to test link to XBEE host...");
+        for (int i = 0; i < 5; i++)
+        {
+            /* Send and wait for reply from host to see if it is there */
+            modules::xbee->send("REGISTER,id="+deviceId);            
+            
+            reply = modules::xbee->getReply();
+            
+            if (reply.find("Done") != string::npos)
+            {
+                util::printInfo("Registered with XBEE host");
+                success = true;
+                break;
+            }
+            else
+            {
+                util::printInfo("Failed. Reply was: " + reply + ". Attempting again...");
+            }
+        }
+        
+        if (!success)
+        {
+            util::printError("No Reply from XBEE host");
+            return;            
+        }
+            
+        /* Get time */
+        modules::xbee->send("TIME");
+        reply = modules::xbee->getReply();
+        if (reply.length() == 20)
+        {
+            util::setTime(reply.substr(0,10), reply.substr(11,8));            
+            util::printInfo("Retrieved time from Xbee host");
+        }
+        else
+        {
+            util::printError("Unable to get time from xbee host");
+            return;
+        }          
     }
     mode = t;
     util::printInfo("Done");
@@ -148,35 +206,53 @@ void Wireless::sendReadings()
     string str;
     int interval;
     float value;
-    while(1)
+    
+    /* Wait for new reading from queue */
+    r = modules::pressureSensor->getNextReading();
+    if (r == NULL)
     {
-         /* Wait for new reading from queue */
-         r = modules::pressureSensor->getNextReading();            
-            
-        /* Save to .csv file on SD Card */
-        modules::sdCard->writeReading(*r);
+        /* No new message */
+        return;
+    }            
         
-        /* Get reading info */
-        time = r->time;
-        interval = (r->interval)/1000;
-        value = r->value;
-        
-        /* Print reading to PC/Log */
-        util::printInfo("Reading at: " + time + " for interval " + util::ToString(interval) + "s is " + util::ToString(value)+"mm");
-        
-        /* TX reading */
-        if (mode == GSM)
-        {                  
-            data = "id=0&reading="+util::ToString(value)+"&interval="+util::ToString(interval)+"&time="+time;
-            str = modules::gsm->httpPost("/send", data);            
-            if (str.find("Done") != string::npos)
-            {
-                util::printInfo("TX to server was successful");
-            }
-            else
-            {
-                util::printError("Could not TX to server. The server returned: " + str);
-            }
+    /* Save to .csv file on SD Card */
+    modules::sdCard->writeReading(*r);
+    
+    /* Get reading info */
+    time = r->time;
+    interval = (r->interval)/1000;
+    value = r->value;
+    
+    /* Print reading to PC/Log */
+    util::printInfo("Reading at: " + time + " for interval " + util::ToString(interval) + "s is " + util::ToString(value)+"mm" + " Rate = " + util::ToString(value * (3600/interval)) + " mm/h");
+    
+    /* TX reading */
+    data = "id=0&reading="+util::ToString(value)+"&interval="+util::ToString(interval)+"&time="+time;
+    
+    /* Switch operation based upon mode selected */
+    if (mode == GSM)
+    {                  
+        str = modules::gsm->httpPost("http://lono-rain.appspot.com:80","/send", data);            
+        if (str.find("Done") != string::npos)
+        {
+            util::printInfo("TX to server was successful");
+        }
+        else
+        {
+            util::printError("Could not TX to server. The server returned: " + str);
+        }
+    }
+    else if (mode == XBEE)
+    {
+        modules::xbee->send(data);
+        str = modules::xbee->getReply();
+        if (str.find("Done") != string::npos)
+        {
+            util::printInfo("XBEE transfer was successful");
+        }   
+        else
+        {
+            util::printError("No reply from Xbee host");
         }
     }
 }
@@ -202,11 +278,13 @@ string Wireless::getConnectionModeString()
     }
 }
 
+
+/* Currently returned by server after registering, idea to return from XBEE too? */
 void Wireless::getTime()
 {
     if (mode == GSM)
     {
-        string r = modules::gsm->httpGet("/time");
+        string r = modules::gsm->httpGet("http://lono-rain.appspot.com:80","/time");
         if (r.length() == 19)
         {
             util::setTime(r.substr(0,10),r.substr(11,8));

@@ -8,24 +8,26 @@ PressureSensor::PressureSensor(PinName out, PinName sleep) :
 sensor(out), sleepPin(sleep), senseThread(&PressureSensor::threadStarter, this, osPriorityNormal,2548), samples(0),
 totalRain(0), emptying(false), lasth(0), sampsPerTx(0), readsPerSamp(0), tubeArea(0), 
 outTubeArea(0), funnelRatio(0), startEmptyHeight(0), endEmptyHeight(0), calibration(0.0f),
-offset(0), active(false), lastReading("None"), reading(0), timer(timerStarter, osTimerPeriodic, this),
-equationConstant(0)
+offset(0), active(false), lastReading("None"), reading(0), timer(timerStarter, osTimerPeriodic, this)
 {
 }
 
 PressureSensor::~PressureSensor(){}
 
+/* Start timer */
 void PressureSensor::timerStarter(void const *p)
 {
     PressureSensor *instance = (PressureSensor*)p;
     instance->timerTask();
 }
 
+/* Each timer pulse set the sensor thread to sample */
 void PressureSensor::timerTask()
 {    
     senseThread.signal_set(SAMPLE);
 }
 
+/* The sensor thread */
 void PressureSensor::threadStarter(void const* p)
 {
     PressureSensor *instance = (PressureSensor*)p;
@@ -37,6 +39,7 @@ uint32_t PressureSensor::getTxInterval()
     return sampsPerTx * sampInterval;
 }
 
+/* Save Timing Data */
 void PressureSensor::setTiming(Timing t)
 {
     sampsPerTx = t.tx / t.samp;
@@ -44,6 +47,7 @@ void PressureSensor::setTiming(Timing t)
     readsPerSamp = t.reads;
 }
 
+/* Start! */
 void PressureSensor::start()
 {
     if (tubeArea == 0 || funnelRatio == 0)
@@ -62,11 +66,10 @@ void PressureSensor::start()
         return;
     }
     
-    /* Calculate equation constant */
-    equationConstant = (sqrt(2 * pow(outTubeArea,2) * G) / tubeArea) * (sampInterval);
-    equationConstant /= 1000;    
-    
+    /* Save current height as the last height reading */
     lasth = toHeight(read());
+    
+    /* Start! */
     samples = 0;        
     active = true;
     timer.start(sampInterval);
@@ -76,7 +79,6 @@ void PressureSensor::start()
     util::printInfo("Funnel Ratio: " + util::ToString(funnelRatio));
     util::printInfo("Calibration Factor: " + util::ToString(calibration));
     util::printInfo("Calibration Offset: " + util::ToString(offset));
-    util::printInfo("Equation Constant: " + util::ToString(equationConstant));
     util::printInfo("Self emptying starts at " + util::ToString(startEmptyHeight) +"m and ends at " + util::ToString(endEmptyHeight) + "m");
     
     util::printInfo("Transmission of Data every " + util::ToString(getTxInterval()/1000) + "s");
@@ -98,11 +100,13 @@ void PressureSensor::stopTimer()
     active = false;
 }
 
+/* Are of a circle */
 float PressureSensor::area(float r)
 {
     return M_PI * pow(r,2);
 }
 
+/* Save dimensions */
 void PressureSensor::setDimensions(Dimensions d)
 {
     outTubeArea = area(d.outTubeRadius);
@@ -113,6 +117,7 @@ void PressureSensor::setDimensions(Dimensions d)
     endEmptyHeight = d.endEmptyHeight;        
 }
 
+/* Save calibration data */
 void PressureSensor::calibrate(Calibrate c)
 {
     if (c.fullAdc != 0)
@@ -122,6 +127,7 @@ void PressureSensor::calibrate(Calibrate c)
     }
 }
 
+/* read sensor, average readsPerSamp readings */
 uint16_t PressureSensor::read()
 {
     uint32_t adcRead = 0;
@@ -133,11 +139,13 @@ uint16_t PressureSensor::read()
     return (uint16_t) adcRead;
 }
 
+/* Convert adc reading to height */
 float PressureSensor::toHeight(uint16_t adcVal)
 {
-    return (((float) adcVal) - offset) * calibration;
+    return (((float) adcVal) - offset) * calibration * 1000; //in mm
 }
 
+/* Sleep and wakeup regulator */
 void PressureSensor::sleep()
 {
     sleepPin = 0;
@@ -148,7 +156,7 @@ void PressureSensor::wakeup()
     sleepPin = 1;
 }
 
-
+/* Sensing! */
 void PressureSensor::sensorTask()
 {   
    float h;
@@ -204,15 +212,12 @@ void PressureSensor::sensorTask()
            positiveDeltas = 0;
            zerodeltas = 0;
         }
-        
-        
         else if (deltah > 0)
         {
             positiveDeltas++;
             negativeDeltas = 0;
             zerodeltas = 0;
         }
-        
         else
         {
             zerodeltas++;
@@ -224,7 +229,6 @@ void PressureSensor::sensorTask()
         
         /* Save */
         lasth = h;        
-        
         
         /* Check if tube will be emptying or not */
         if (emptying)
@@ -246,7 +250,7 @@ void PressureSensor::sensorTask()
         }
         else
         {
-            if (negativeDeltas == 3)
+            if (negativeDeltas == 5)
             {                       
                 //5 consecutive -ve deltas, probably emptying                    
                 emptying = true;
@@ -259,9 +263,9 @@ void PressureSensor::sensorTask()
                     if ((firstNegativeh < (startEmptyHeight-0.002) || (firstNegativeh > (startEmptyHeight+0.002))))
                     {
                         //calibration = startEmptyHeight / (firstNegativeAdc - offset);
-                        util::printDebug("recal: thinks h is " + util::ToString(firstNegativeh) + " fullADC now = "+util::ToString(firstNegativeAdc));
-                        samples = 0;
-                        totalRain = 0;
+                        //util::printDebug("recal: thinks h is " + util::ToString(firstNegativeh) + " fullADC now = "+util::ToString(firstNegativeAdc));
+                        //samples = 0;
+                        //totalRain = 0;
                     }
                 }
             }
@@ -277,6 +281,11 @@ void PressureSensor::sensorTask()
             }              
                 
             samples++;
+            
+            /* Increment every sample? */            
+           deltah = roundf(deltah * 100) / 100;
+          //  util::printDebug(util::ToString(deltah));
+           // totalRain += deltah;
         
             /* Time to tx sample */
             if (samples == sampsPerTx)
@@ -287,7 +296,7 @@ void PressureSensor::sensorTask()
                 /* Stop timer while processing */             
                 timer.stop();                
                 /* Convert height in tube to rainfall in mm */
-                reading = (totalRain * funnelRatio) * 1000;  
+                reading = (totalRain * funnelRatio); //* 1000;  
                 if (reading < 0)
                 {
                     reading = 0;
@@ -328,9 +337,4 @@ Wireless::Reading* PressureSensor::getNextReading()
 string PressureSensor::getLastReading()
 {
     return lastReading;
-}
-
-float PressureSensor::calcTubeOut(float h)
-{
-    return h * equationConstant;
 }

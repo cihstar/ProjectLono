@@ -1,3 +1,5 @@
+/* Frequently used commands */
+
 #include "util.h"
 #include "modules.h"
 #include <sstream>

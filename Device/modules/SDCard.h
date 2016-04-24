@@ -11,10 +11,11 @@
 class SDCard
 {
     public:
-        SDCard(PinName a, PinName b, PinName c, PinName d);
+        SDCard(PinName a, PinName b, PinName c, PinName d, bool act);
         ~SDCard();
         void writeToLog(string s);
         void writeReading(Wireless::Reading r);
+        void clearReadings();
         
         Dimensions readDimensions();
         void writeDimensions(Dimensions d);
@@ -23,9 +24,7 @@ class SDCard
         void writeCalibrateData(Calibrate c);
         
         Timing readTimingData();
-        void writeTimingData(Timing t);
-        
-        bool fileExists(char *filename);
+        void writeTimingData(Timing t);        
         
         string readLog();
         void resetLog();

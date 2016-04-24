@@ -188,8 +188,8 @@
                 
                 </div>
 
+                </div>
             </div>
-       </div>
     
     
     
@@ -223,10 +223,16 @@
     }
     
     var getDataFun = function()
-    {        
+    {               
         $.post( url+"/getDataForDeviceInRange", {id:$(id).val(), start:$(start).val(), end:$(end).val()}, 
         function( returnData ) {
-            $(reply).html( returnData );
+            var shortData = returnData
+            if (shortData.length > 200)
+            {
+                shortData = shortData.substring(0,200);
+                shortData += " ...";
+            }
+            $(reply).html( shortData );
             
             var jsonData = $.parseJSON(returnData);
             var myData = [];    
@@ -234,12 +240,16 @@
             var plx = [];
             var ply = [];  
             
+            
             for (i = 0; i < jsonData.length; i++)
-            {                
-                myData.push({x:Date.parse(jsonData[i].time), y:(jsonData[i].value * ((60*60) / jsonData[i].interval)) });
+            {           
+                var val = jsonData[i].value * ((60*60) / jsonData[i].interval);     
+                myData.push({x:Date.parse(jsonData[i].time), y:val });
                 
                 plx.push(jsonData[i].time);
-                ply.push( (jsonData[i].value * ((60*60) / jsonData[i].interval)) );                
+                ply.push( (jsonData[i].value * ((60*60) / jsonData[i].interval)) );  
+                
+            //     $(readingList).append("<li class='mdl-list__item'><span class='mdl-list__item-primary-content'>"+jsonData[i].time + " Rate: " + val + " mm/hr</span></li>");              
             }
             
              var pldata = [
@@ -323,6 +333,8 @@
     $(document).ready(function() {
         $(editDevice).hide();
         update(); 
+        
+        window.setInterval(getDataFun, 3000);
     });
     
 

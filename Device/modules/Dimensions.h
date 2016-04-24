@@ -1,3 +1,5 @@
+/* Defines structures for passing data */
+
 #ifndef __DIMENSIONS_H__
 #define __DIMENSIONS_H__
 

@@ -1,6 +1,6 @@
 /********************************************************************************
 
-   Lono Rain Gauge | Wireless.cpp | Chris Holbrow
+   Rain Gauge | Wireless.cpp | Chris Holbrow
    
    ----------------------------------------------------------------------------
 
@@ -135,6 +135,7 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
         }
         
         /* Register with the server */
+        /* Send device id to server, get the current time as a reply */
         util::printInfo("Connecting to server...");
         string datetime = modules::gsm->httpPost("http://lono-rain.appspot.com:80","/reg","id="+util::ToString(deviceId));
         if (datetime.length() == 20)
@@ -152,6 +153,7 @@ void Wireless::setConnectionMode(Wireless::ConnectionType t)
     else if (t == Wireless::XBEE)
     {
         /* Set up Xbee */
+        /* Note: not fully tested */
         string reply;
         bool success = false;
         util::printInfo("Attempting to test link to XBEE host...");

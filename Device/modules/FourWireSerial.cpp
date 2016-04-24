@@ -1,3 +1,11 @@
+/* Extension of the serial object to support an RTS and CTS line.
+    However, never really used, as the GSM Module comms were reliable 
+    with just tx and rx lines.
+    
+    Characters recieved are added to a circular buffer.
+    When /r/n is recieved notifes the GSM recieve thread.
+*/
+
 #include "mbed.h"
 #include "FourWireSerial.h"
 #include "rtos.h"
@@ -5,17 +13,16 @@
 #include <string>
 
 FourWireSerial::FourWireSerial(PinName rx, PinName cts, PinName tx, PinName rts) :
-RTS(rts), CTS(cts), serial(tx,rx), newm(), bracketOpen(false), len(0), lastC(' '), setup(false),
-readIndex(0), writeIndex(0), LFCR(false)
+RTS(rts), CTS(cts), serial(tx,rx), lastC(' '), setup(false),
+readIndex(0), writeIndex(0)
 {
     serial.attach(this, &FourWireSerial::recieveByte);
-    setBaud(9600);
-    DigitalOut m(p21); 
-    m = 1;
+    setBaud(9600);        
 }
 
 void FourWireSerial::setRxThread(Thread *t, int* a)
 {
+    /* Save pointers to the GSM thread */
     messagesAvailable = a;
     rxThread = t;
     setup = true;
@@ -27,11 +34,7 @@ FourWireSerial::~FourWireSerial()
 
 char FourWireSerial::getChar()
 {
-    if (readIndex == writeIndex)
-    {
-        util::printDebug("Read > Write, R: "+util::ToString(readIndex)+" W: "+util::ToString(writeIndex));
-        return 'E';
-    }
+    /* Write to circular buffer */
     char c = charBuffer[readIndex];
     readIndex++;
     readIndex %= FWS_BUFFER_LENGTH;
@@ -40,11 +43,11 @@ char FourWireSerial::getChar()
 
 void FourWireSerial::clearBuffer()
 {
+    /* Delete the buffer */
     for (int i = 0; i < FWS_BUFFER_LENGTH; i++)
     {
         charBuffer[i] = ' ';
-    }
-    len=0;
+    }    
     writeIndex = 0;
     readIndex = 0;
 }
@@ -55,12 +58,14 @@ void FourWireSerial::recieveByte()
     {        
         char c = serial.getc();     
         
+        /* Write to circular buffer */
         charBuffer[writeIndex] = c;
         writeIndex++;   
         writeIndex %= FWS_BUFFER_LENGTH;  
                
         if (lastC == '\r' && c == '\n')
         {
+            /* End of message. Tell GSM thread */
             rxThread->signal_set(FWS_MESSAGE_READY);     
             (*messagesAvailable)++;                         
         }        
@@ -85,6 +90,10 @@ void FourWireSerial::sendData(string data)
         sendByte(data[i]);
     }
 }
+
+/*********************************
+GSMMessage Class
+*********************************/
 
 GSMMessage::GSMMessage(string m, int l) : length(l)
 {

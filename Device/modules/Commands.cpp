@@ -1,7 +1,15 @@
+/* This file contains all the PC command functions.
+   BuildCommandList() constructs a PCCommand object for each functions
+   with a name and description and adds the function pointer to the
+   function as defined here */
+   
 #include "Commands.h"
+#include "pindef.h"
 
 void buildCommandList()
 {    
+    /* Add more PC Commands Here.. */
+    
     PCCommand debug("debug", "Activate or deactivate debug mode. debug 0 = OFF, debug 1 = ON", debugCmd, 1);
     modules::pc->addCommand(debug);
     
@@ -43,6 +51,9 @@ void buildCommandList()
     
     PCCommand start("start", "Start collecting readigs", startCmd, 0);
     modules::pc->addCommand(start);
+    
+    PCCommand clearData("clearData", "Clear the readings from csv file", clearDataCmd, 0);
+    modules::pc->addCommand(clearData);
 }
 
 void debugCmd(vector<string> &mIns)
@@ -69,6 +80,7 @@ void setTimeCmd(vector<string> &mIns)
     if (util::setTime(mIns[0], mIns[1]))
     {               
         util::printInfo("Time Set Successfully. Current System Time: "+util::getTimeStamp());
+        modules::ui->writeText("System Time:", util::getTimeStamp());
     }
     else
     {
@@ -111,10 +123,15 @@ void readAdcCmd(vector<string> &mIns)
 
 void adcCmd(vector<string> &mIns)
 {
+    uint16_t val = 0;
+    char rx;
+    Serial matlab(XBEE_TX, XBEE_RX);    
     while(1)
-    {
-        util::printInfo(util::ToString(modules::pressureSensor->read()));
-        Thread::wait(500);
+    {            
+        matlab.scanf("%c", &rx); //wait for matlab to ask to reading
+        val = modules::pressureSensor->read();
+        util::printInfo("ADC Value Sent to Matlab: " + util::ToString(val)); 
+        matlab.printf("%d\n", val);       
     }
 }
 
@@ -188,4 +205,10 @@ void stopCmd(vector<string> &mIns)
 void startCmd(vector<string> &mIns)
 {
     modules::pressureSensor->start();
+}
+
+void clearDataCmd(vector<string> &mIns)
+{
+    modules::sdCard->clearReadings();   
+    util::printInfo("Done");
 }

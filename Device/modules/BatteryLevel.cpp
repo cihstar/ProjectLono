@@ -1,11 +1,14 @@
+/* The power input is fed through a potential divider.
+   This module reads the ADC and gets the current voltage. 
+   Not complete. */
+
 #include "BatteryLevel.h"
 #include "util.h"
 
 BatteryLevel::BatteryLevel(PinName input) : 
 timer(timerStarter, osTimerPeriodic, this),
 battery(input)
-{
-    
+{  
 };
 
 BatteryLevel::~BatteryLevel(){}

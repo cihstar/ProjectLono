@@ -1,3 +1,8 @@
+/* File defines all of the modules used. 
+    Include this module to have access to the objects in all files.
+    Allows inter-module communication
+*/
+
 #ifndef __MODULES_H__
 #define __MODULES_H__
 

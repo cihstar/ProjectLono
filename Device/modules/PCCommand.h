@@ -1,3 +1,10 @@
+/* Defins the PCCommand Object 
+    name: string defining the command to type to call the function
+    description: string explainig the command. 'help' or '?' will display this 
+    function: function pointer to a function with 1 argument , vector<string> &mIns, containing the arguments
+    numArgs: int the number of arguments this function takes.
+    */
+    
 #ifndef __PC_CMD_H__
 #define __PC_CMD_H__
 

@@ -9,6 +9,7 @@
 #define FWS_MESSAGE_READY 0x02
 #define FWS_BUFFER_LENGTH 1024
 
+/* GSMMessage class for containing a message passed in the GSM threads */
 class GSMMessage {
     private:
         string message[8];
@@ -25,6 +26,14 @@ class GSMMessage {
 };
 
 typedef std::unique_ptr<GSMMessage> ptr_GSM_msg;
+
+/* Extension of the serial object to support an RTS and CTS line.
+    However, never really used, as the GSM Module comms were reliable 
+    with just tx and rx lines.
+    
+    Characters recieved are added to a circular buffer.
+    When /r/n is recieved notifes the GSM recieve thread.
+*/
 
 class FourWireSerial {
    public:
@@ -44,20 +53,16 @@ class FourWireSerial {
     DigitalOut RTS;   
     Serial serial;
     char charBuffer[FWS_BUFFER_LENGTH];    
-    void recieveByte();
-    uint16_t len;
+    void recieveByte();    
     char lastC;
-    bool messageStarted;
-    GSMMessage newm;
-    bool bracketOpen;
+    bool messageStarted;        
     Thread* rxThread;
     bool setup;
     int* messagesAvailable;
     
     int readIndex;
     int writeIndex;
-    
-    bool LFCR;
+        
 };
 
 #endif

@@ -1,8 +1,9 @@
 #include "SDCard.h"
 #include "util.h"
 
-SDCard::SDCard(PinName a, PinName b, PinName c, PinName d):
-active(true)
+/* SD Card initialised in main function, used here */
+
+SDCard::SDCard(PinName a, PinName b, PinName c, PinName d, bool act): active(act)
 {      
     if (active)
     {     
@@ -13,12 +14,7 @@ active(true)
 
 SDCard::~SDCard(){}
 
-bool SDCard::fileExists(char *filename)
-{
-  struct stat   buffer;   
-  return (stat (filename, &buffer) == 0);
-}
-
+/* Start a new log */
 void SDCard::resetLog()
 {
     if (active)
@@ -34,6 +30,7 @@ void SDCard::resetLog()
     }   
 }
 
+/* Add line to log */
 void SDCard::writeToLog(string s)
 {
     if (active)
@@ -49,6 +46,7 @@ void SDCard::writeToLog(string s)
     }
 }
 
+/* Read line from log */
 string SDCard::readLog()
 {
     if(active)
@@ -74,6 +72,7 @@ string SDCard::readLog()
     }
 }
 
+/* Write reading to csv file */
 void SDCard::writeReading(Wireless::Reading r)
 {
     if (active)
@@ -89,6 +88,23 @@ void SDCard::writeReading(Wireless::Reading r)
     }
 }
 
+/* Reset readings file */
+void SDCard::clearReadings()
+{
+     if (active)
+    {
+        FILE *fp = fopen("/sd/lono/data.csv", "w");
+        if(fp == NULL) {    
+            fclose(fp);        
+            util::printError("Could not open readings data file for write\n");
+            return;
+        }
+        fprintf(fp, "Time Stamp,Interval /s,Rainfall /mm\r\n");
+        fclose(fp);
+    }
+}
+
+/* Set Dimension data */
 Dimensions SDCard::readDimensions()
 { 
     Dimensions ret = {0,0,0,0,0,0,0};
@@ -138,6 +154,7 @@ Dimensions SDCard::readDimensions()
     return ret;
 }
 
+/* Write dimension data */
 void SDCard::writeDimensions(Dimensions d)
 {    
     if (active)
@@ -156,6 +173,7 @@ void SDCard::writeDimensions(Dimensions d)
     }
 }
 
+/* Get calibration data */
 Calibrate SDCard::readCalibrateData()
 {
     Calibrate ret = {0,0,0.0f};
@@ -219,6 +237,7 @@ Calibrate SDCard::readCalibrateData()
     return ret;
 }
 
+/*Write new calibration data to sd */
 void SDCard::writeCalibrateData(Calibrate c)
 {
     if (active)
@@ -235,6 +254,7 @@ void SDCard::writeCalibrateData(Calibrate c)
     }
 }
 
+/* Read the timing data */
 Timing SDCard::readTimingData()
 {
     Timing ret = {0,0,0};
@@ -295,6 +315,7 @@ Timing SDCard::readTimingData()
     return ret;
 }
 
+/* Write new timing data */
 void SDCard::writeTimingData(Timing t)
 {
     if (active)

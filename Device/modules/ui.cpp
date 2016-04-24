@@ -1,3 +1,5 @@
+/* This module not fully woring. Buttons and screen work just need to implement menu and to make it do stuff! */
+
 #include "ui.h"
 #include "modules.h"
 #include "rtos.h"

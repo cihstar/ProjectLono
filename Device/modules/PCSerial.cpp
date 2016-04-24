@@ -1,18 +1,16 @@
+/* PCSerial Object allowing serial communications and control via a PC */
+
 #include "PCSerial.h"
 #include "modules.h"
 
-PCSerial::PCSerial(PinName tx, PinName rx, uint8_t size) : ser(tx,rx), echo(true), enableInput(false)
+PCSerial::PCSerial(PinName tx, PinName rx, uint8_t size) : ser(tx,rx), echo(true), enableInput(false),
+count(0), debug(true), bufferSize(size), gsmMode(false), messageStarted(false)
 {
-    ser.attach(this,&PCSerial::rxByte);
-    count = 0;
-    insCount = 0;
-    typeDone = false;
-    debug = true;
-    bufferSize = size;
-    gsmMode = false;    
-    messageStarted = false;   
+    /* Serial rx interrupt */
+    ser.attach(this,&PCSerial::rxByte);                          
 }
 
+/* GSM mode allows direct seial comms with the GSM module */
 bool PCSerial::getGsmMode()
 {
     return gsmMode;
@@ -23,6 +21,7 @@ void PCSerial::setGsmMode(bool b)
     gsmMode = b;
 }
 
+/* Services incoming messages that are in the thread */
 void PCSerial::rxTask()
 {          
     std::vector<string> mIns;
@@ -44,7 +43,7 @@ void PCSerial::rxTask()
     full = *msgptr;
     delete msgptr;  
     
-        /* Log to SD card */
+   /* Log to SD card */
     modules::sdCard->writeToLog("PC: " + full);
     
     /* Take args out of string - ' ' seperator */
@@ -142,6 +141,7 @@ void PCSerial::rxTask()
 
 PCSerial::~PCSerial(){}
 
+/* Save incoming char to buffer */
 void PCSerial::addToBuffer(char c)
 {
     if (count >= bufferSize)
@@ -151,11 +151,13 @@ void PCSerial::addToBuffer(char c)
     count++;
 }
 
+/* Add command to command list */
 void PCSerial::addCommand(PCCommand c)
 {
     commandList.push_back(c);
 }
 
+/* Rx byte intterupt */
 void PCSerial::rxByte()
 {
     if (!enableInput) return;
@@ -205,6 +207,7 @@ bool PCSerial::getDebug()
     return debug;
 }
 
+/* Get message from queue */
 string* PCSerial::getNextMessage()
 {    
     osEvent e = messageQueue.get(10);
@@ -224,6 +227,16 @@ void PCSerial::setEcho(bool e)
 void PCSerial::print(string s)
 {    
     ser.printf("\r\n%s",s.c_str());    
+}
+
+void PCSerial::startMatlab()
+{
+    ser.printf("\n");
+}
+
+void PCSerial::printMatlab(int s)
+{
+    ser.printf("%d\n",s);
 }
 
 void PCSerial::setEnableInput(bool b)

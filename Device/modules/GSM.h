@@ -1,3 +1,5 @@
+/** Module containing the GSM module */
+
 #ifndef __GSM_H__
 #define __GSM_H__
 
@@ -42,11 +44,9 @@ class GSM {
     bool waitingForReply;
     
     Queue<string,respLength> sendCommandReplyQueue;
-    int respWaiting;
-    int respFront;
+    int respWaiting;    
     int replyFor;
-    Mutex mRespWaiting;
-    bool respTo[respLength];
+    Mutex mRespWaiting;    
     
     string connectedUrl;
     

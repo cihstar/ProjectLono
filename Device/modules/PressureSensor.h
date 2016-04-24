@@ -42,9 +42,7 @@ class PressureSensor
         
         RtosTimer timer;
         void timerTask();    
-        static void timerStarter(void const *p);
-
-        float calcTubeOut(float height);
+        static void timerStarter(void const *p);        
         
         bool active;
         string lastReading;
@@ -68,9 +66,7 @@ class PressureSensor
         /* Physical Dimensions */
         float tubeArea;
         float outTubeArea;
-        float funnelRatio; //mm
-        
-        float equationConstant;
+        float funnelRatio; //mm        
         
         /* Out tube on/off heights */
         float startEmptyHeight;

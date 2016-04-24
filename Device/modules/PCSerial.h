@@ -18,20 +18,20 @@ class PCSerial{
         bool getDebug();
         string* getNextMessage();
         void print(string s);
+        void startMatlab();
+        void printMatlab(int s);
         void setEnableInput(bool b);
         void addCommand(PCCommand c);
         bool getGsmMode();
         void setGsmMode(bool b);
         void rxTask();
-    private:
         Serial ser;
+    private:
         void rxByte();
         void addToBuffer(char c);
         bool echo;
         char buffer[128];
-        uint8_t count;
-        uint8_t insCount;
-        bool typeDone;
+        uint8_t count;                
         bool debug;  
         bool gsmMode;
         uint8_t bufferSize;             

@@ -1,3 +1,8 @@
+/* This file contains all the PC command functions.
+   BuildCommandList() constructs a PCCommand object for each functions
+   with a name and description and adds the function pointer to the
+   function as defined here */
+
 #ifndef __COMMANDS_H__
 #define __COMMANDS_H__
 
@@ -24,5 +29,6 @@ void getHeightCmd(vector<string> &mIns);
 void setFunnelCmd(vector<string> &mIns);
 void stopCmd(vector<string> &mIns);
 void startCmd(vector<string> &mIns);
+void clearDataCmd(vector<string> &mIns);
 
 #endif

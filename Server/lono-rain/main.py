@@ -1,3 +1,11 @@
+# Python Server created to accept incoming data from rain gauges
+# Runs on Google App Engine.
+# Create account at appengine.google.com, downlaod the launcher to deploy app.
+
+# Database contains a device and a reading
+
+# Also can tweet via the Tweepy library, the current api keys in the code are for twitter.com/projectlono
+
 import webapp2
 from google.appengine.ext import ndb
 import datetime

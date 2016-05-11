@@ -72,6 +72,7 @@ void GSM::rxTask()
             {
                 /* Build message by taking chars out of circular buffer */
                 c = serial.getChar();
+                message.append(1,c);
                 if (c == '\n' && lastC == '\r')
                 {
                     messageComplete = true;
